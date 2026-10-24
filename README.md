@@ -1,9 +1,35 @@
-# CodeLens — backend du POC étudiant
+# CodeLens — monorepo du POC étudiant
 
 Squelette de module **Ruby on Rails**, basé sur la spécification API v0.2 du
 20 octobre 2026. Le dossier initial ne contenait pas l'application Coursemology :
 ce module est donc fourni sous forme de Rails Engine, avec un hôte local minimal.
 Il n'est pas encore intégré ni validé dans Coursemology.
+
+## Organisation du dépôt
+
+Le backend Rails reste à la racine ; le futur frontend React/TypeScript est
+réservé dans `client/`. Les deux parties peuvent évoluer dans une même PR.
+
+```text
+CodeLens/
+├── app/                         # Backend Rails
+├── config/                      # Routes et configuration backend
+├── lib/                         # Rails Engine
+├── test/                        # Tests backend et hôte Rails minimal
+├── client/
+│   ├── app/
+│   │   ├── api/course/codelens/  # Futur adaptateur API et types des échanges
+│   │   └── bundles/course/codelens/ # Future interface étudiant
+│   ├── mocks/                  # Futurs mocks de développement frontend
+│   └── public/                 # Ressources statiques publiques
+├── Gemfile
+└── codelens.gemspec
+```
+
+Voir [le guide frontend](client/README.md) pour les responsabilités et les
+limites d'intégration. Les dossiers frontend sont des emplacements réservés :
+aucune application React, dépendance JavaScript ou commande de build n'est
+encore installée. Les commandes ci-dessous concernent uniquement le backend.
 
 ## Périmètre actuel
 

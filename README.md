@@ -65,11 +65,28 @@ ressources imbriquées ; les URL correspondent à celles de la spécification.
 Prérequis : Ruby >= 3.2 et Bundler. La plage Rails déclarée sert au squelette ;
 la version finale devra correspondre au Gemfile.lock de la branche Coursemology.
 
+Configuration locale vérifiée le 24 octobre 2026 : Ruby 3.4.11, Bundler 2.6.9
+et Rails 8.1.4 sous Windows. `.ruby-version` indique la version Ruby du POC et
+`Gemfile.lock` fixe les versions résolues des gems. Le lockfile actuel cible
+`x64-mingw-ucrt` ; les autres plateformes devront être ajoutées lors de leur
+validation. La dépendance `tzinfo-data` fournit les fuseaux horaires sous Windows.
+
 ```sh
+bundle config set --local path vendor/bundle
 bundle install
 bundle exec rackup --host 127.0.0.1 --port 3000
+```
+
+Dans un autre terminal, lancer les tests :
+
+```sh
 bundle exec rake test
 ```
+
+Après installation de Ruby sous Windows, ouvrir un nouveau terminal pour charger
+le PATH. Utiliser `curl.exe` dans PowerShell si `curl` désigne un alias.
+Les avertissements Puma concernant les signaux Unix indisponibles sous Windows
+n'empêchent pas le serveur de fonctionner. Arrêter le serveur avec `Ctrl+C`.
 
 ```sh
 curl -i http://127.0.0.1:3000/courses/12/codelens/attempts/81
@@ -107,3 +124,7 @@ par les réponses 501 actuelles.
 
 Les tests inclus vérifient les dix routes, le format de l'erreur et l'absence des
 routes exclues. Ils nécessitent Ruby et les gems pour s'exécuter.
+
+Validation locale : 11 tests, 43 assertions, aucun échec. Le serveur Puma a
+également été vérifié par HTTP : réponse JSON 501 sur une tentative et 404 sur
+la route `activities` exclue. Ces contrôles valident le squelette uniquement.

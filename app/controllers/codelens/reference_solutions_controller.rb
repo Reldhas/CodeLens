@@ -1,7 +1,7 @@
 module Codelens
   class ReferenceSolutionsController < ApplicationController
     def index
-      not_implemented
+      mock_operation(:references, id: params[:id])
     end
   end
 end

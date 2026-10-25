@@ -1,7 +1,7 @@
 module Codelens
   class DraftsController < ApplicationController
     def update
-      not_implemented
+      mock_operation(:draft, id: params[:id], payload: mock_payload(:draft))
     end
   end
 end

@@ -22,9 +22,11 @@ frontend implementation; the root `test/` directory belongs to Rails.
 Use `/courses/:course_id/codelens` for all CodeLens API requests. Centralise
 transport in the API adapter so screens do not construct URLs or manage tokens.
 Keep JSON fields in `snake_case` at the API boundary and treat record IDs as
-opaque identifiers. The backend currently returns structured HTTP 501 errors;
+opaque identifiers. By default the backend returns structured HTTP 501 errors;
 the future client must handle these as unavailable operations, not successful
-empty responses.
+empty responses. The optional [backend mock workflow](../docs/mock-workflow.md)
+now supports attempts, drafts, submissions, references and empty TA feedback.
+Tests and AI jobs remain unavailable in both modes.
 
 The current scope excludes activity listing and staff authoring. Do not add an
 `activities` request merely to populate a first screen. Activity selection and

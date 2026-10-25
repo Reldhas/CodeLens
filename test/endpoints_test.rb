@@ -1,7 +1,4 @@
-ENV["RAILS_ENV"] = "test"
-require_relative "dummy/config/application"
-Rails.application.initialize!
-require "rails/test_help"
+require_relative "test_helper"
 
 class EndpointsTest < ActionDispatch::IntegrationTest
   ENDPOINTS = [

@@ -33,10 +33,17 @@ encore installée. Les commandes ci-dessous concernent uniquement le backend.
 
 ## Périmètre actuel
 
-Uniquement les routes et contrôleurs étudiants. Chaque endpoint répond **501**
-avec une erreur JSON explicite et un `request_id`. Aucun succès fictif, stockage
-en mémoire, compte synthétique ou job simulé n'est créé. Les corps de requête ne
-sont pas encore traités ou validés : cela viendra avec les services et les mocks.
+Routes et contrôleurs étudiants, avec deux modes :
+
+- Par défaut, chaque endpoint répond **501**, sans backend connecté.
+- Avec `CODELENS_MOCK_MODE=1`, un parcours étudiant en mémoire permet de démarrer
+  une tentative, lire l'exercice, sauvegarder un brouillon, soumettre une review
+  et consulter les références. Le feedback TA retourne `null`.
+
+Le mode mock utilise le cours 12, l'activité 15 et une identité synthétique
+configurée côté serveur. Il est refusé hors développement/test. Les données
+disparaissent au redémarrage et ne sont pas partagées entre processus.
+Voir [le walkthrough mock](docs/mock-workflow.md) pour démarrer et essayer le parcours.
 
 Aucune connexion à PostgreSQL, Redis, Keycloak, Docker/Polyglot ou à un fournisseur
 IA. Aucun endpoint `activities`, `manage`, inscription ou authentification.
@@ -108,23 +115,26 @@ Réponse actuelle :
 ## Suite de l'intégration
 
 Les contrôleurs sont séparés par ressource pour accueillir les services/mocks
-ultérieurs. Ne remplacer les réponses 501 par des données qu'après raccordement
-au contexte d'identité et de cours approprié.
+ultérieurs. `Codelens::Mock::Workflow` fournit le test double local ; il ne remplace
+pas l'authentification et les permissions de Coursemology. L'identité de ce mode
+est configurée dans l'hôte local, jamais fournie par une requête.
 
 Dans Coursemology, adapter la classe de base et l'enregistrement du composant
 aux conventions de la branche cible : authentification existante, instance,
 `current_course`, `current_course_user` et capacités. L'hôte minimal sous `test/dummy`
 ne remplace pas ces mécanismes et ne constitue pas une configuration de production.
 
-Les prochaines implémentations devront appliquer les contrats de la spécification :
-propriété des tentatives et preuves, verrouillage optimiste, idempotence,
-reviews immuables avec quatre critères, tests uniquement débutant, références
-après soumission et feedbacks IA/TA séparés. Rien de cela n'est prétendu implémenté
-par les réponses 501 actuelles.
+Le mode mock vérifie le propriétaire/cours, le verrouillage optimiste, l'idempotence
+des soumissions, les quatre critères et les références de lignes. Chaque soumission
+conserve un snapshot distinct et l'état d'exposition aux références. Un verrou
+protège les mutations concurrentes dans le processus. Ces garanties devront être
+portées vers les transactions et contraintes de la base lors de l'intégration.
+Les tests exécutables, les jobs IA, la persistance et la véritable authentification
+restent à implémenter. Aucune preuve de test fictive n'est acceptée.
 
 Les tests inclus vérifient les dix routes, le format de l'erreur et l'absence des
 routes exclues. Ils nécessitent Ruby et les gems pour s'exécuter.
 
-Validation locale : 11 tests, 43 assertions, aucun échec. Le serveur Puma a
-également été vérifié par HTTP : réponse JSON 501 sur une tentative et 404 sur
-la route `activities` exclue. Ces contrôles valident le squelette uniquement.
+Les tests couvrent le mode désactivé et le parcours mock : validation, conflits,
+idempotence, isolation, concurrence et déverrouillage des références. Ils ne
+valident pas encore une intégration à Coursemology ou aux services externes.

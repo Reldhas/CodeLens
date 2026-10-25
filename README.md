@@ -38,7 +38,8 @@ Routes et contrôleurs étudiants, avec deux modes :
 - Par défaut, chaque endpoint répond **501**, sans backend connecté.
 - Avec `CODELENS_MOCK_MODE=1`, un parcours étudiant en mémoire permet de démarrer
   une tentative, lire l'exercice, sauvegarder un brouillon, soumettre une review
-  et consulter les références. Le feedback TA retourne `null`.
+  et consulter les références. Les tests et feedbacks IA simulés disposent d'un
+  cycle de job consultable. Le feedback TA retourne `null` en l'absence de retour humain.
 
 Le mode mock utilise le cours 12, l'activité 15 et une identité synthétique
 configurée côté serveur. Il est refusé hors développement/test. Les données
@@ -129,8 +130,12 @@ des soumissions, les quatre critères et les références de lignes. Chaque soum
 conserve un snapshot distinct et l'état d'exposition aux références. Un verrou
 protège les mutations concurrentes dans le processus. Ces garanties devront être
 portées vers les transactions et contraintes de la base lors de l'intégration.
-Les tests exécutables, les jobs IA, la persistance et la véritable authentification
-restent à implémenter. Aucune preuve de test fictive n'est acceptée.
+Les dix endpoints étudiants sont fonctionnels en mode mock. Les tests débutants
+simulent uniquement l'exercice fixe ; aucun code n'est exécuté. Seuls les runs
+terminés de la même tentative/version sont acceptés comme preuves simulées.
+Les jobs avancent lors du polling et les feedbacks IA sont explicitement factices.
+Les adapters réels, la queue durable, la persistance et l'authentification
+Coursemology restent à intégrer. Voir [les contrats mock](docs/mock-workflow.md).
 
 Les tests inclus vérifient les dix routes, le format de l'erreur et l'absence des
 routes exclues. Ils nécessitent Ruby et les gems pour s'exécuter.

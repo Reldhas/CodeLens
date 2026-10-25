@@ -9,12 +9,12 @@ module Codelens
     def mock_operation(operation, id: nil, payload: {}, status: :ok)
       workflow = Rails.application.config.x.codelens.workflow
       return not_implemented unless workflow
+      response.set_header("X-CodeLens-Mode", "mock")
 
       # The synthetic identity comes from host configuration, never the request.
       result = workflow.call(operation, course_id: params[:course_id],
                              owner_id: Rails.application.config.x.codelens.mock_owner_id,
                              id: id, payload: payload, key: request.headers["Idempotency-Key"])
-      response.set_header("X-CodeLens-Mode", "mock")
       render json: result, status: status
     rescue Codelens::Mock::Workflow::Error => error
       render_error(error.code, error.message, error.status, error.field)

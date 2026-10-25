@@ -6,6 +6,7 @@ module Codelens
   module Mock
     # Local, single-process test double. No durable storage or authentication.
     class Workflow
+      include Jobs
       class Error < StandardError
         attr_reader :code, :status, :field
 
@@ -21,11 +22,13 @@ module Codelens
       JUDGMENTS = %w[acceptable needs_changes insufficient_information].freeze
       CODE = "def calculate_total(amount):\n    if amount >= 500:\n        return amount * 0.9\n    return amount\n".freeze
 
-      def initialize
+      def initialize(evaluator: Evaluator.new, assessor: Assessor.new)
         raise "CodeLens mocks require development or test" unless Rails.env.development? || Rails.env.test?
 
         @mutex = Mutex.new
         @attempts, @submissions, @idempotency = {}, {}, {}
+        @test_runs, @assessments = {}, {}
+        @evaluator, @assessor = evaluator, assessor
         @sequence = 0
       end
 
@@ -39,6 +42,10 @@ module Codelens
                    when :draft then save_draft(find_attempt(id, context), payload)
                    when :submit then submit(find_attempt(id, context), context, payload, key)
                    when :references then references(find_attempt(id, context))
+                   when :create_test_run then create_test_run(find_attempt(id, context), context, payload, key)
+                   when :test_run then poll_test_run(owned_record(@test_runs, id, context))
+                   when :create_assessment then create_assessment(owned_record(@submissions, id, context), context, payload, key)
+                   when :assessment then poll_assessment(owned_record(@assessments, id, context))
                    when :ta_feedback
                      submission = @submissions[id.to_s]
                      fail_with("NOT_FOUND", "Record not found.", 404) unless submission && submission[:context] == context
@@ -57,7 +64,7 @@ module Codelens
         now = timestamp
         attempt = { id: next_id, context: context, activity_version_id: 22,
                     level: payload["level"], status: "in_progress", lock_version: 0,
-                    draft: nil, review_submission_ids: [], references_viewed: false,
+                    draft: nil, review_submission_ids: [], references_viewed: false, ai_viewed: false,
                     created_at: now, updated_at: now }
         @attempts[attempt[:id].to_s] = attempt
         metadata(attempt)
@@ -76,11 +83,11 @@ module Codelens
       def present(attempt)
         metadata(attempt).merge(
           exercise: { title: "Discount calculation", scenario: "Review a checkout discount function.",
-                      requirements: ["Amounts at least 500 receive 20% off."], language: "python", code: CODE,
+                      requirements: ["Amounts at least 500 receive 20% off.", "Nonnegative amounts below 500 are unchanged."], language: "python", code: CODE,
                       input_schema: { type: "object", properties: { amount: { type: "number" } },
                                       required: ["amount"], additionalProperties: false },
                       guidance: ["What happens at the discount threshold?"] },
-          capabilities: { can_run_tests: false, can_view_references: attempt[:review_submission_ids].any? },
+          capabilities: { can_run_tests: attempt[:level] == "beginner", can_view_references: attempt[:review_submission_ids].any? },
           draft: attempt[:draft], review_submission_ids: attempt[:review_submission_ids]
         )
       end
@@ -88,6 +95,7 @@ module Codelens
       def save_draft(attempt, payload)
         check_lock(attempt, payload)
         review = validate_review(payload["review"], complete: false)
+        evidence_for(review, attempt)
         attempt[:draft] = copy(review)
         advance(attempt)
         { review: attempt[:draft], lock_version: attempt[:lock_version], updated_at: attempt[:updated_at] }
@@ -106,10 +114,11 @@ module Codelens
         end
         check_lock(attempt, payload)
         review = validate_review(payload["review"], complete: true)
+        evidence = evidence_for(review, attempt)
         submission = { id: next_id, attempt_id: attempt[:id], context: context,
                        activity_version_id: attempt[:activity_version_id], rubric_version_id: 7,
-                       review: copy(review), evidence: [], status: "submitted", created_at: timestamp,
-                       feedback_exposure: { references_viewed: attempt[:references_viewed], ai: false, ta: false } }
+                       review: copy(review), evidence: evidence, status: "submitted", created_at: timestamp,
+                       feedback_exposure: { references_viewed: attempt[:references_viewed], ai: attempt[:ai_viewed], ta: false } }
         @submissions[submission[:id].to_s] = submission
         attempt[:review_submission_ids] << submission[:id]
         attempt[:status] = "submitted"
@@ -176,7 +185,9 @@ module Codelens
             fail_with("INVALID_LINE_REFERENCE", "Line numbers must refer to the exercise code.")
           end
           evidence = criterion.fetch("test_run_ids", [])
-          fail_with("INVALID_EVIDENCE", "Test evidence is unavailable until the runner mock is implemented.") unless evidence == []
+          unless evidence.is_a?(Array) && evidence.size <= 10 && evidence.all? { |id| id.is_a?(Integer) && id.positive? }
+            fail_with("INVALID_EVIDENCE", "Supply at most ten test run IDs per criterion.")
+          end
           name
         end
         fail_with("INVALID_CRITERIA", "Duplicate criteria are not allowed.") unless names.uniq == names

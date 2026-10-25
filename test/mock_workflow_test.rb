@@ -39,7 +39,7 @@ class MockWorkflowTest < ActionDispatch::IntegrationTest
     assert_response :ok
     assert_nil response.parsed_body["draft"]
     assert_equal false, response.parsed_body.dig("capabilities", "can_view_references")
-    assert_equal false, response.parsed_body.dig("capabilities", "can_run_tests")
+    assert_equal true, response.parsed_body.dig("capabilities", "can_run_tests")
     assert_not response.body.include?("rubric_explanations")
     get "#{BASE}/attempts/#{id}/reference_solutions"
     assert_response :forbidden
@@ -140,13 +140,13 @@ class MockWorkflowTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
-  test "mock mode leaves test and AI jobs unimplemented" do
+  test "advanced attempts reject tests but can request AI feedback" do
     id = create_attempt("advanced")
-    post "#{BASE}/attempts/#{id}/test_runs", as: :json
-    assert_response :not_implemented
+    post "#{BASE}/attempts/#{id}/test_runs", params: { test_run: { cases: [] } }, as: :json
+    assert_response :unprocessable_entity
     submit(id)
     submission_id = response.parsed_body["id"]
-    post "#{BASE}/review_submissions/#{submission_id}/ai_assessments", as: :json
-    assert_response :not_implemented
+    post "#{BASE}/review_submissions/#{submission_id}/ai_assessments", headers: { "Idempotency-Key" => "ai-1" }, as: :json
+    assert_response :accepted
   end
 end

@@ -71,10 +71,82 @@ criteria with judgment and reasoning, a decision and a summary; requesting chang
 also requires proposed changes. `proposed_code` is stored as text only.
 
 Successful mock responses include `X-CodeLens-Mode: mock`. No `/activities` or
-management route is added. Test runs and AI assessments still return 501, so
-`can_run_tests` is false at every level until execution is implemented.
-Nonempty test evidence IDs are rejected rather than presented as verified results.
+management route is added. All ten student endpoints work in mock mode; all still
+return 501 when mock mode is disabled. `can_run_tests` is true only for beginner.
 Reference responses use `{ items: [...], rubric_explanations: [...] }`.
+
+## Simulated tests and AI jobs
+
+Create a test run after creating a beginner attempt (before submitting if you
+want to include its evidence):
+
+```powershell
+$run = Invoke-RestMethod -Method Post -Uri "$base/attempts/$($attempt.id)/test_runs" -ContentType 'application/json' -Headers @{
+  'Idempotency-Key' = [guid]::NewGuid().ToString()
+} -Body (@{ test_run = @{ cases = @(
+  @{ client_case_id = 'threshold'; inputs = @{ amount = 500 }; prediction = @{ kind = 'value'; value = 400 } }
+) } } | ConvertTo-Json -Depth 10)
+
+# POST returns queued. First GET advances to running; second GET completes.
+Invoke-RestMethod "http://127.0.0.1:3000$($run.poll_url)"
+$result = Invoke-RestMethod "http://127.0.0.1:3000$($run.poll_url)"
+$result.cases
+```
+
+The fixed exercise yields actual 450 and expected 400 at the threshold of 500.
+Results carry `simulated: true`: a Ruby fixture computes them without executing
+Python, Docker or student code. The mock oracle is a POC fixture, not a validated
+production evaluator. Numeric comparison uses absolute tolerance `0.000001`.
+Nonnegative values below 500 are unchanged. Negative amounts are accepted as test
+data but have null expected outcomes and requirement verdicts because the fixture
+does not specify their business validity. Prediction matching still compares
+against the simulated actual result.
+
+Each request accepts 1–10 cases with unique IDs (1–100 characters) and exactly one
+numeric input, `amount`, bounded to ±1e9. Predictions accept bounded numeric values
+or `{ kind: 'error', error_code: 'INVALID_INPUT' }`. Code, extra inputs, shell strings
+and other unexpected case fields are rejected with 422. Intermediate/advanced
+attempts return `TESTING_NOT_AVAILABLE` even if called directly.
+
+Add `test_run_ids = @($run.id)` to a criterion in the submission body to cite a
+completed run. Evidence must belong to that attempt and pinned version; pending,
+failed, missing and other-attempt runs are rejected. Submission freezes a copy
+of the review, evidence, version identifiers and feedback-exposure state.
+
+After submitting a review, request AI feedback with an empty body:
+
+```powershell
+$assessment = Invoke-RestMethod -Method Post -Uri "$base/review_submissions/$($submission.id)/ai_assessments" -Headers @{
+  'Idempotency-Key' = [guid]::NewGuid().ToString()
+}
+Invoke-RestMethod "http://127.0.0.1:3000$($assessment.poll_url)"
+$feedback = Invoke-RestMethod "http://127.0.0.1:3000$($assessment.poll_url)"
+$feedback
+```
+
+Feedback has `source: ai`, `simulated: true`, all four criteria and only saved
+code-line/test-run references. Outcomes are deliberately `not_assessable` with
+`needs_human_review: true`; no model has evaluated the review. Model and prompt
+versions are server-owned mock identifiers. Nonempty request bodies are rejected.
+TA feedback remains a separate endpoint returning `{ feedback: null }`.
+
+Job POSTs require `Idempotency-Key`, scoped to student, course, operation and parent
+record. Repeating a key with a different payload returns 409. A repeated key returns
+the same job ID and its current status. AI requests with different keys also dedupe
+by submission and the fixed rubric/prompt/model configuration while in flight or
+completed. After failure, a new key permits a retry, capped at three total attempts.
+The original key continues to identify the original failed job.
+
+Polling is ownership/course-scoped and returns `running`, then `completed` or
+`failed`; terminal responses are stable. Failure contains a safe `MOCK_JOB_FAILED`
+error and preserves the review. Tests inject failing evaluator/assessor callables
+through `Workflow.new(evaluator: ..., assessor: ...)`; HTTP clients cannot control
+failure modes or provider configuration.
+
+**POC limitation:** no worker runs in the background. Polling drives the mock job
+state machine. All records, jobs and deduplication keys are process-local and lost
+on restart. Durable jobs, real identity/permissions, production evaluator and AI
+integration must replace these doubles before deployment.
 
 Stop the server with Ctrl+C. Disable mock mode before starting the default host:
 

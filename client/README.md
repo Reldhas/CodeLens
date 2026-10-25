@@ -25,8 +25,9 @@ Keep JSON fields in `snake_case` at the API boundary and treat record IDs as
 opaque identifiers. By default the backend returns structured HTTP 501 errors;
 the future client must handle these as unavailable operations, not successful
 empty responses. The optional [backend mock workflow](../docs/mock-workflow.md)
-now supports attempts, drafts, submissions, references and empty TA feedback.
-Tests and AI jobs remain unavailable in both modes.
+supports all ten student endpoints, including simulated test runs and AI jobs.
+Use the returned capabilities and poll URLs; mock mode is explicit and its data
+resets on server restart. TA feedback currently returns null.
 
 The current scope excludes activity listing and staff authoring. Do not add an
 `activities` request merely to populate a first screen. Activity selection and

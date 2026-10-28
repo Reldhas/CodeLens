@@ -1,3 +1,5 @@
+> **Frontend demo:** The standalone Lens Review prototype is in [client/](client/README.md). Run `npm install` and `npm run dev` there. It uses simulated feedback and browser storage; Rails is not required. The backend notes below describe the older scaffold.
+
 # CodeLens — monorepo du POC étudiant
 
 Squelette de module **Ruby on Rails**, basé sur la spécification API v0.2 du

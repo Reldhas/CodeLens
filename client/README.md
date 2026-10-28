@@ -1,57 +1,58 @@
-# CodeLens frontend — reserved structure
+# CodeLens frontend demo
 
-This directory will contain the student React/TypeScript interface. It is a
-structural scaffold only: no package manager, build tool, dependencies, UI or
-mocks have been installed. There is no frontend start command yet.
+Standalone React + TypeScript Lens Review prototype. No Rails, authentication,
+API keys, database, or backend is needed. The older Rails scaffold is not used.
 
-## Responsibilities
+## Run
 
-| Directory | Intended contents |
-|---|---|
-| `app/bundles/course/codelens/` | Student screens, feature components, hooks and colocated UI tests |
-| `app/api/course/codelens/` | Course-scoped API adapter, request/response types and adapter tests |
-| `mocks/` | Future development/test request handlers and synthetic fixtures |
-| `public/` | Public static assets; never private rubrics, references or secrets |
+From this directory, with Node.js 22 or newer:
 
-Keep feature code inside the CodeLens bundle. Create subdirectories for screens,
-components and hooks when implementation needs them. Keep tests next to their
-frontend implementation; the root `test/` directory belongs to Rails.
+```sh
+npm install
+npm run dev
+```
 
-## Backend boundary
+Open http://127.0.0.1:5173. The development server only serves frontend assets.
 
-Use `/courses/:course_id/codelens` for all CodeLens API requests. Centralise
-transport in the API adapter so screens do not construct URLs or manage tokens.
-Keep JSON fields in `snake_case` at the API boundary and treat record IDs as
-opaque identifiers. By default the backend returns structured HTTP 501 errors;
-the future client must handle these as unavailable operations, not successful
-empty responses. The optional [backend mock workflow](../docs/mock-workflow.md)
-supports all ten student endpoints, including simulated test runs and AI jobs.
-Use the returned capabilities and poll URLs; mock mode is explicit and its data
-resets on server restart. TA feedback currently returns null.
+```sh
+npm run build
+npm test
+npm run preview
+```
 
-The current scope excludes activity listing and staff authoring. Do not add an
-`activities` request merely to populate a first screen. Activity selection and
-fixtures will be agreed when mocks are implemented.
+`dist/` is the static production site and can be served by a static host.
+Google Fonts is optional; system fonts work if offline.
 
-Mocks should implement the same request/response contracts, be explicitly
-enabled for development or tests, and remain outside production bundles. Never
-put server-owned reference answers or private rubric content into shipped assets.
+## Demo walkthrough
 
-## Future Coursemology integration
+1. Open Cinema seat checker and read the brief.
+2. Click line 6, then line 9, to select the nested lookup.
+3. Choose Efficiency. Example claim: "The nested loop scans every booked seat."
+4. Explain that each request scans the whole list, resulting in O(r*b) time.
+5. Propose building a set of booked seats before the loop. Save the annotation.
+6. Edit or delete annotations before submission. Submit to lock the review.
+7. Inspect Claim, Evidence, Reasoning, and Fix scores; expand the model review.
+8. Visit My progress, or try the shopping discount exercise for boundary cases.
 
-The bundle path anticipates `client/app/bundles/course/codelens/` in the target
-application. The API adapter directory is provisional: reconcile it with the
-target branch's existing course API layer when integrating.
+Saved annotations, submitted reviews, and history persist in browser localStorage
+under `codelens-demo-v1`. Unsaved annotation form text is not persisted. Try again
+starts a fresh draft while preserving submitted history. Analytics show the last
+30 days; records remain until browser storage is cleared. Storage failure falls
+back to session memory and displays a notice.
 
-Reuse Coursemology's API helpers/interceptors, identity and course context,
-navigation, UI conventions and pinned toolchain. Do not introduce a second login
-flow. Authorisation and reference release remain backend responsibilities.
+Feedback is explicitly simulated. A deterministic heuristic checks focus,
+issue keywords, line overlap, reasoning length, and fix keywords. Duplicate
+annotations cannot increase an issue's score. This is not semantic assessment,
+Python execution, actual AI generation, or approved course material. Model answers
+ship in the frontend for demo use. Only Lens Review is included; other modes,
+real TA feedback, and real authentication are outside this prototype's scope.
 
-When building the standalone POC interface, keep any local entry point and
-development-server configuration outside the reusable CodeLens bundle. Configure
-local API forwarding then, once a build tool is chosen; no CORS changes or
-connections are needed for this structural preparation.
+## Structure
 
-JavaScript dependencies and their eventual lockfile belong in `client/`; Ruby
-dependencies remain at the repository root. The Rails gem packages backend paths
-only. Frontend packaging and deployment will be configured when the UI exists.
+- `app/bundles/course/codelens/App.tsx`: review workspace and progress UI
+- `app/bundles/course/codelens/model.js`: sample exercises and demo rubric
+- `app/bundles/course/codelens/styles.css`: responsive editor-style theme
+- `tests/assessment.test.mjs`: scoring, evidence, duplicate, and partial-credit tests
+
+Verified: production build, six scoring tests, browser annotation submission,
+locked state, and submitted-review persistence on reload.

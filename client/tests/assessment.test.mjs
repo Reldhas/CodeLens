@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { assess, exercises } from '../app/bundles/course/codelens/model.js';
+const good = {dimension:'Efficiency',start:6,end:9,claim:'The nested loop scans every booked seat.',reasoning:'Every request scans the list, taking O(r*b) time instead of a constant time membership lookup.',fix:'Build a set before the loop.'};
+test('empty review earns no credit',()=>assert.equal(assess(exercises[0],[]).total,0));
+test('supported review receives four rubric credits',()=>assert.equal(assess(exercises[0],[good]).total,10));
+test('unrelated evidence loses evidence credit',()=>assert.equal(assess(exercises[0],[{...good,start:12,end:13}]).rubric.evidence,0));
+test('duplicate claims cannot inflate score',()=>assert.equal(assess(exercises[0],[good,good]).total,10));
+test('wrong focus does not receive claim credit',()=>assert.equal(assess(exercises[0],[{...good,dimension:'Correctness'}]).total,0));
+test('finding only one of two issues cannot earn full marks',()=>assert.equal(assess(exercises[1],[{...good,dimension:'Correctness',start:3,end:3,claim:'The 100 boundary is excluded',fix:'Use >= for inclusive comparison'}]).total,5));

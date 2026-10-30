@@ -8,7 +8,6 @@ React, TypeScript, and Vite. No Ruby, Rails, database, or backend service is req
 Requires Node.js 22 or newer.
 
 ```sh
-cd client
 npm install
 npm run dev
 ```
@@ -29,7 +28,7 @@ the exercises are sample material for demonstration.
 
 ## Validate and build
 
-From `client/`:
+From the repository root:
 
 ```sh
 npm test
@@ -37,6 +36,6 @@ npm run build
 npm run preview
 ```
 
-Deploy `client/dist/` to a static host. Source code, dependencies, tests, and
-configuration live in `client/`. See [the frontend guide](client/README.md)
+Deploy `dist/` to a static host. Source code, dependencies, tests, and
+configuration live at the repository root. See [the frontend guide](docs/frontend.md)
 for the walkthrough, execution limits, and implementation details.

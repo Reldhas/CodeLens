@@ -5,7 +5,7 @@ API keys, database, or backend is needed. The Ruby backend has been removed.
 
 ## Run
 
-From this directory, with Node.js 22 or newer:
+From the repository root, with Node.js 22 or newer:
 
 ```sh
 npm install

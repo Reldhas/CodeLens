@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import { Play, Square, Terminal } from 'lucide-react';
+import { Square, Terminal } from 'lucide-react';
 
 export default function PythonConsole({ source, example }: { source: string; example: string }) {
   const [command, setCommand] = useState(example);
-  const [output, setOutput] = useState('Run a command to test the code above.');
+  const [history, setHistory] = useState<{ command: string; output: string }[]>([]);
+  const scrollArea = useRef<HTMLDivElement>(null);
+  function setOutput(output: string) {
+    setHistory(entries => entries.map((entry, i) => i === entries.length - 1 ? { ...entry, output } : entry));
+  }
+  useEffect(() => {
+    const area = scrollArea.current;
+    if (area) area.scrollTop = area.scrollHeight;
+  }, [history]);
   const [busy, setBusy] = useState(false);
   const worker = useRef<Worker | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>();
@@ -21,7 +29,8 @@ export default function PythonConsole({ source, example }: { source: string; exa
   function run() {
     if (busy || !command.trim()) return;
     setBusy(true);
-    setOutput('Starting Python…');
+    setHistory(entries => [...entries.slice(-99), { command, output: 'Starting Python…' }]);
+    setCommand('');
     try {
       if (!worker.current) worker.current = new Worker(new URL('./python.worker.js', import.meta.url), { type: 'module' });
       const active = worker.current;
@@ -42,12 +51,19 @@ export default function PythonConsole({ source, example }: { source: string; exa
       active.postMessage({ source, command });
     } catch (error) { stop('Unable to start Python: ' + String(error)); }
   }
-  return <section className="python-console" aria-label="Python command console">
-    <div className="console-heading"><h3><Terminal size={16}/>Python console</h3><span>Runs in your browser</span></div>
-    <label htmlFor="python-command">Command</label>
-    <textarea id="python-command" spellCheck={false} value={command} disabled={busy} onChange={e=>setCommand(e.target.value)} onKeyDown={e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();run();}}}/>
-    <div className="console-actions"><span>Ctrl / ⌘ + Enter to run</span>{busy?<button className="secondary" onClick={()=>stop()}><Square size={14}/>Stop</button>:<button className="primary" disabled={!command.trim()} onClick={run}><Play size={14}/>Run Python</button>}</div>
-    <pre className="console-output" role="status" aria-live="polite" aria-busy={busy}>{output}</pre>
-    <p className="console-note">The first run downloads Python. Each run starts with the code above and fresh variables. Use print() to display values. Interactive input() is not supported.</p>
+  return <section className="python-console simple-terminal" aria-label="Python command console">
+    <div className="console-heading"><h3><Terminal size={14}/>Terminal</h3>{busy?<button className="terminal-stop" onClick={()=>stop()}><Square size={12}/>Stop</button>:<span>Enter to run · Shift+Enter for a new line</span>}</div>
+    <div className="terminal-scroll" ref={scrollArea}>
+      <div className="terminal-history" role="log" aria-live="polite" aria-relevant="additions text">
+        {history.map((entry, index)=><div className="terminal-entry" key={index}>
+          <pre className="terminal-command">{'>>> ' + entry.command.replace(/\n/g, '\n... ')}</pre>
+          <pre className="terminal-result">{entry.output}</pre>
+        </div>)}
+      </div>
+      <form className="terminal-prompt" onSubmit={e=>{e.preventDefault();run();}}>
+        <span aria-hidden="true">&gt;&gt;&gt;</span>
+        <textarea rows={Math.min(6, command.split('\n').length)} wrap="off" id="python-command" aria-label="Python command" autoComplete="off" autoCapitalize="off" spellCheck={false} value={command} readOnly={busy} onChange={e=>setCommand(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();run();}else if(e.ctrlKey&&e.key==='c'&&busy){e.preventDefault();stop();}}}/>
+      </form>
+    </div>
   </section>;
 }

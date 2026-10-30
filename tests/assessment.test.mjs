@@ -8,3 +8,63 @@ test('unrelated evidence loses evidence credit',()=>assert.equal(assess(exercise
 test('duplicate claims cannot inflate score',()=>assert.equal(assess(exercises[0],[good,good]).total,10));
 test('wrong focus does not receive claim credit',()=>assert.equal(assess(exercises[0],[{...good,dimension:'Correctness'}]).total,0));
 test('finding only one of two issues cannot earn full marks',()=>assert.equal(assess(exercises[1],[{...good,dimension:'Correctness',start:3,end:3,claim:'The 100 boundary is excluded',fix:'Use >= for inclusive comparison'}]).total,5));
+import { choosePractice, eligibleExercises, submissionError } from '../app/bundles/course/codelens/review-flow.js';
+test('focus selection excludes questions with issues outside chosen areas',()=>{
+  assert.deepEqual(eligibleExercises('Random',['Efficiency']).filter(e=>e.findings.length).map(e=>e.id),['seats']);
+});
+test('empty focus cannot start a chosen-focus review',()=>assert.throws(()=>choosePractice('Random',[],false)));
+test('random chooses and freezes focus containing all planted issue types',()=>{
+  const config=choosePractice('Conditions & boundaries',[],true,()=>0);
+  assert.equal(config.topic,'Conditions & boundaries');
+  assert.ok(config.focus.includes('Correctness'));
+  assert.deepEqual(JSON.parse(JSON.stringify(config)),config);
+});
+test('no issues requires a nonblank justification',()=>{
+  assert.ok(submissionError({comments:[],submitted:false,noIssues:true,justification:'  '}));
+  assert.equal(submissionError({comments:[],submitted:false,noIssues:true,justification:'Checked every requirement.'}),'');
+});
+test('no issues and annotations are mutually exclusive',()=>assert.ok(submissionError({comments:[good],submitted:false,noIssues:true,justification:'Checked.'})));
+test('submitted and unfinished reviews cannot be submitted',()=>{
+  assert.ok(submissionError({comments:[good],submitted:true}));
+  assert.ok(submissionError({comments:[good],submitted:false},true));
+});
+test('clean code earns full credit only with an explicit justified conclusion',()=>{
+  const clean=exercises.find(e=>e.id==='seats-clean');
+  assert.equal(assess(clean,[],{noIssues:true,justification:'Membership uses a set and the comprehension preserves request order.'}).total,10);
+  assert.equal(assess(clean,[],{noIssues:true,justification:'  '}).total,0);
+  assert.equal(assess(clean,[]).total,0);
+  assert.equal(assess(clean,[good],{noIssues:true,justification:'Checked.'}).total,0);
+});
+test('incorrect no-issues conclusion earns zero',()=>assert.equal(assess(exercises[0],[],{noIssues:true,justification:'Looks fine.'}).total,0));
+test('clean review result stays finite and does not invent rubric scores',()=>{
+  for(const exercise of exercises.filter(e=>!e.findings.length)) {
+    const result=assess(exercise,[],{noIssues:true,justification:'Checked requirements.'});
+    assert.equal(result.total,10);
+    assert.deepEqual(result.rubric,{});
+    assert.ok(Number.isFinite(result.total));
+  }
+});
+test('sample bank covers all four focus areas and two issue-free scenarios',()=>{
+  assert.deepEqual([...new Set(exercises.flatMap(e=>e.findings.map(f=>f.dimension)))].sort(),['Appropriateness','Correctness','Efficiency','Maintainability']);
+  assert.equal(exercises.filter(e=>!e.findings.length).length,2);
+  assert.equal(new Set(exercises.map(e=>e.id)).size,exercises.length);
+  for(const e of exercises) for(const f of e.findings) assert.ok(f.start>=1&&f.end>=f.start&&f.end<=e.code.length);
+});
+test('every topic and focus can start a matching review',()=>{
+  for(const topic of new Set(exercises.map(e=>e.topic))) {
+    for(const area of ['Appropriateness','Correctness','Efficiency','Maintainability']) {
+      const config=choosePractice(topic,[area],false,()=>0.5);
+      const exercise=exercises.find(e=>e.id===config.exerciseId);
+      assert.equal(exercise.topic,topic);
+      assert.ok(exercise.findings.every(f=>f.dimension===area));
+    }
+  }
+});
+test('random focus always contains the planted issue types across the bank',()=>{
+  for(let i=0;i<exercises.length;i++) {
+    const config=choosePractice('Random',[],true,()=>i/exercises.length);
+    const exercise=exercises.find(e=>e.id===config.exerciseId);
+    assert.ok(config.focus.length>0);
+    assert.ok(exercise.findings.every(f=>config.focus.includes(f.dimension)));
+  }
+});

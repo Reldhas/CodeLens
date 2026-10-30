@@ -1,5 +1,6 @@
 const runtimeURL = 'https://cdn.jsdelivr.net/pyodide/v0.28.3/full/';
 let runtime;
+let globals;
 self.onmessage = async ({ data }) => {
   try {
     if (!runtime) {
@@ -16,18 +17,20 @@ self.onmessage = async ({ data }) => {
     };
     runtime.setStdout({ batched: append });
     runtime.setStderr({ batched: append });
-    const globals = runtime.toPy({ __name__: '__main__' });
-    try {
+    if (!globals) {
+      globals = runtime.toPy({ __name__: '__main__' });
       await runtime.runPythonAsync(data.source, { globals });
+    }
+    try {
       const result = await runtime.runPythonAsync(data.command, { globals });
       if (result !== undefined) {
         append(String(result));
         result?.destroy?.();
       }
-      self.postMessage({ type: 'done', text: (output || '(No output)') + (truncated ? '\n[Output truncated]' : '') });
+      self.postMessage({ type: 'done', text: output + (truncated ? '\n[Output truncated]' : '') });
     } catch (error) {
       self.postMessage({ type: 'error', text: output + String(error) });
-    } finally { globals.destroy(); }
+    }
   } catch (error) {
     self.postMessage({ type: 'error', text: 'Could not start Python. Check your connection and try again.\n' + String(error) });
   }

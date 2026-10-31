@@ -29,3 +29,8 @@ export function submissionError(draft, hasOpenAnnotation = false) {
   } else if (!draft.comments.length) return 'Add an annotation or select No issues found.';
   return '';
 }
+
+export function nextPractice(currentId, focus, randomFocus, rng = Math.random) {
+  const remaining = exercises.filter(exercise => exercise.id !== currentId);
+  return choosePractice('Random', focus, randomFocus, rng, remaining);
+}

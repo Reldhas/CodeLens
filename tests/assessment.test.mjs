@@ -68,3 +68,20 @@ test('random focus always contains the planted issue types across the bank',()=>
     assert.ok(exercise.findings.every(f=>config.focus.includes(f.dimension)));
   }
 });
+
+import { nextPractice } from '../app/bundles/course/codelens/review-flow.js';
+test('next exercise preserves explicit criteria and does not repeat the current sample',()=>{
+  for(const exercise of exercises) {
+    const focus=exercise.findings.length?[...new Set(exercise.findings.map(f=>f.dimension))]:['Efficiency'];
+    const next=nextPractice(exercise.id,focus,false,()=>0);
+    assert.notEqual(next.exerciseId,exercise.id);
+    assert.deepEqual(next.focus,focus);
+    assert.equal(next.randomFocus,false);
+  }
+});
+test('next random exercise keeps random mode',()=>{
+  const next=nextPractice('seats',['Efficiency'],true,()=>0);
+  assert.notEqual(next.exerciseId,'seats');
+  assert.equal(next.randomFocus,true);
+  assert.ok(next.focus.length>0);
+});

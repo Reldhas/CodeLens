@@ -33,7 +33,7 @@ export default function CriterionGuide({ criteria }: { criteria: string[] }) {
       onClick={()=>setSelected(selected===criterion?null:criterion)}>
       <span className={'focus-dot dot-'+index}/>{criterion}<CircleHelp size={12}/>
     </button>)}</div>
-    <p className="criteria-help-hint">Select a criterion for guidance.</p>
+    <p className="criteria-help-hint">Click a criterion for tips.</p>
     {guide&&<section className="criterion-guidance" id="criterion-guidance" aria-label={selected+' guidance'}>
       <div className="guidance-heading"><h4>{selected}</h4><button className="icon-button" aria-label="Close criterion guidance" onClick={()=>setSelected(null)}><X size={15}/></button></div>
       <strong>{guide.question}</strong>

@@ -13,18 +13,17 @@ export default function ReviewSetup({ onStart }: { onStart: (config: PracticeCon
     try { onStart(choosePractice('Random', focus, randomFocus)); } catch (err) { setError((err as Error).message); }
   }
   return <section className="review-setup">
-    <div className="eyebrow green">YOUR TRAINING CRITERIA</div>
-    <h2>Which skills do you want to train?</h2>
-    <p>Choose the criteria for your next problem and code review. The exercise will target these skills; the code may contain issues or none.</p>
+    <h1>What do you want to practise?</h1>
+    <p>Choose one or more criteria.</p>
     <form onSubmit={start}>
-      <fieldset><legend>Select one or more criteria</legend><div className="setup-focus">
+      <fieldset><legend className="sr-only">Training criteria</legend><div className="setup-focus">
         {dimensions.map(area=><label key={area} className={focus.includes(area)&&!randomFocus?'chosen':''}>
-          <input type="checkbox" checked={!randomFocus&&focus.includes(area)} disabled={randomFocus} onChange={()=>{setFocus(f=>f.includes(area)?f.filter(a=>a!==area):[...f,area]);setError('');}}/><span>{area}<small>{({Correctness:"Find bugs and boundary cases.",Appropriateness:"Judge whether the approach fits the problem.",Efficiency:"Spot unnecessary work and costly operations.",Maintainability:"Assess clarity and ease of future changes."} as Record<string,string>)[area]}</small></span>
+          <input type="checkbox" checked={!randomFocus&&focus.includes(area)} disabled={randomFocus} onChange={()=>{setFocus(f=>f.includes(area)?f.filter(a=>a!==area):[...f,area]);setError('');}}/><span>{area}<small>{({Correctness:"Bugs & edge cases",Appropriateness:"The right approach",Efficiency:"Time & memory",Maintainability:"Readable, adaptable code"} as Record<string,string>)[area]}</small></span>
         </label>)}
-      </div><label className="random-focus"><input type="checkbox" checked={randomFocus} onChange={e=>{setRandomFocus(e.target.checked);setError('');}}/><Shuffle size={15}/>Random criteria · reveal the selected criteria after submission</label></fieldset>
-      <p className="muted">Demo: a matching sample problem and code are selected. AI generation and feedback are simulated. · 8–15 minutes</p>
+      </div><label className="random-focus"><input type="checkbox" checked={randomFocus} onChange={e=>{setRandomFocus(e.target.checked);setError('');}}/><Shuffle size={15}/>Random</label></fieldset>
+
       {error&&<p className="validation-error" role="alert">{error}</p>}
-      <div className="setup-actions"><button className="primary" type="submit">Start practice<ArrowRight size={16}/></button></div>
+      <div className="setup-actions"><span className="muted">8–15 min · Sample exercises</span><button className="primary" type="submit">Start practice<ArrowRight size={16}/></button></div>
     </form>
   </section>;
 }

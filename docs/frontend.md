@@ -31,7 +31,7 @@ Google Fonts is optional; system fonts work if offline.
 4. Explain that each request scans the whole list, resulting in O(r*b) time.
 5. Propose building a set of booked seats before the loop. Save the annotation.
 6. Edit or delete annotations before submission. Alternatively, select No issues found beside Submit review and give a justification (this is mutually exclusive with annotations). Submit to lock the review.
-7. Inspect Claim, Evidence, Reasoning, and Fix scores; expand the model review.
+7. Read the model answer and corrected code directly below the score. Expand Scoring details for the rubric breakdown.
 8. Visit My progress, or try the shopping discount exercise for boundary cases.
 
 Saved annotations, submitted reviews, and history persist in browser localStorage

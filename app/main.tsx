@@ -1,5 +1,5 @@
+import './bundles/course/codelens/styles.css';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './bundles/course/codelens/App';
-import './bundles/course/codelens/styles.css';
-createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);
+import Shell from './bundles/course/codelens/Shell';
+createRoot(document.getElementById('root')!).render(<React.StrictMode><Shell /></React.StrictMode>);

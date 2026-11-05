@@ -11,6 +11,7 @@ export type Feature = {
   label: string;
   Screen: ComponentType<ScreenProps>;
   HomePanel?: ComponentType<ScreenProps>;
+  scoreFor?: (fn: string) => string | null;
   card?: { icon: ComponentType<any>; lens: string; skill: string; score: () => string | null };
   help?: { title: string; steps: string[] };
 };

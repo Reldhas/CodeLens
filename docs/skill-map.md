@@ -1,8 +1,8 @@
 # Skill Map
 
 Shows a student where to practise next, using this browser's attempts plus
-made-up sample history. It adds no backend. Open it from the Skill Map button on
-the home screen.
+made-up sample history. It adds no backend. Open it from the Skill Map link in
+the header, on every student screen including Lens Review.
 
 ## What it shows
 
@@ -44,3 +44,13 @@ entries in that file to show real attempts only.
 
 Outside the folder, it adds `scoreFor` to `features.ts` and uses it for the card
 scores in `StudentHome.tsx`.
+
+## Header navigation
+
+This pull request also changes the header, for students and TAs:
+
+- **Students:** the breadcrumb stays (Practice › Dry Run), and student pages such
+  as the Skill Map appear as links on the right. `App.tsx` gets an optional
+  `extraLink` so Lens Review shows the same link.
+- **TAs:** the TA screens appear as tabs next to CodeLens instead of a
+  breadcrumb, since they aren't steps of one path.

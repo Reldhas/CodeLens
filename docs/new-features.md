@@ -31,13 +31,22 @@ downloaded at that point. There are 18 sample questions.
 **Concept Match (Appropriateness)**
 
 1. Choose a difficulty and get a set of 5 stories.
-2. Pick one of 4 concepts and give a one-line reason.
+2. Pick one of 4 concepts and give a one-line reason (required).
 3. Check the answer. It locks, and the feedback explains the options and
    comments on the reason. Rate it.
 4. See a summary at the end of the set. Any question can be reopened.
 
 There are 30 sample questions. Feedback is rule-based and labelled Simulated,
 like Lens Review. Both exercises can be left and resumed.
+
+**Lens Review feedback per comment:** under the score, each of the student's
+comments gets one AI feedback box: whether the claim names the issue, the lines,
+the reasoning and the fix (`LensFeedback.tsx`, `lens-feedback.js`). It follows the rules of `assess()` and doesn't change the
+score.
+
+**Demo shortcuts:** opening the app with `?demo` in the address adds **Fill a good
+answer** and **Fill a wrong answer** to every exercise. See
+[the demo script](demo-script.md).
 
 ## Changes to the existing prototype
 

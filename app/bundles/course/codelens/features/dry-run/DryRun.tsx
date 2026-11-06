@@ -6,6 +6,7 @@ import DifficultySetup, { type Difficulty } from '../../DifficultySetup';
 import type { ScreenProps } from '../../features';
 import { eligibleItems, label, pickItems, readCourse, topicName } from '../../course.js';
 import { createAttempt, getAttempt, lastDifficulty, listAttempts, updateAttempt } from '../../practice-log.js';
+import DemoFill from '../../DemoFill';
 import { displayOutput, dryRunFeedback, dryRunScore } from './feedback.js';
 import { questions } from './questions.js';
 import { runProgram } from './run-python.js';
@@ -76,6 +77,7 @@ function Exercise({ attemptId, onHome, onNext }: { attemptId: string; onHome: ()
         </div>}
       </aside>
     </div>
+    {!submitted&&<DemoFill onGood={async()=>{const run=await runProgram(question.code);setPrediction(displayOutput(run.output,run.error));}} onWrong={()=>setPrediction(question.commonMistakes[0].output)}/>}
     <div className="submission-bar">{submitted?<div className="completed-actions"><button className="secondary" onClick={onHome}><ArrowLeft size={16}/>Back to practice</button><button className="primary" onClick={onNext}>Next question<ArrowRight size={17}/></button></div>:<><button className="secondary" onClick={onHome}><ArrowLeft size={16}/>Save and leave</button><button className="primary" disabled={!prediction.trim()||running} onClick={submit}>{running?'Running…':'Submit and run'}<ArrowRight size={17}/></button></>}</div>
   </>;
 }

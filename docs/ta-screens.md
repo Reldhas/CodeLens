@@ -3,17 +3,24 @@
 The TA side of the prototype, with made-up sample data and no backend. TA actions
 are saved in this browser's localStorage, so run a student-and-TA demo in one
 browser. Use the Student / TA switch on the home screen to change views. It also
-appears on the TA screens, but not inside exercises.
+appears on the TA screens, but not inside exercises. The TA screens appear as tabs
+in the header, in the order of the TA's work: Content Studio, Review Queue, Class
+Insights.
 
 ## Content Studio
 
-- **Example bank:** approved examples per function, against the number required.
-- **Samples:** Generate reveals pre-made samples for a function and topic. Each can
-  be approved, rejected or regenerated, and its explanation edited. The code can't
-  be edited.
-- **Materials:** Upload keeps the file name, week and topic. The file itself isn't
-  stored.
-- **Course settings:** published topics and examples required.
+One page in four numbered steps, so the logic is clear: the AI writes exercises
+from the course material, and students only get what the TA approves and publishes.
+
+1. **Upload course materials:** keeps the file name, week and topic. The file
+   itself isn't stored.
+2. **Generate exercises with AI:** choose an exercise type and topic. It shows which
+   materials it is based on, then reveals pre-made samples after a short wait.
+3. **Review and approve:** approved examples per type (3 needed), and each sample
+   can be approved, regenerated or rejected.
+4. **Publish topics:** which topics students can get.
+
+The number of examples required stays at 3; it has no setting on screen.
 
 These settings really change what students get:
 
@@ -22,8 +29,7 @@ These settings really change what students get:
 - Published topics limit Dry Run and Concept Match. Lens Review keeps its own
   exercises and topics.
 
-Generation and the sandbox checks shown on each sample are simulated. Edited
-explanations are saved in Content Studio but don't change what students see.
+Generation is simulated: the samples are written in advance.
 
 ## Review Queue
 

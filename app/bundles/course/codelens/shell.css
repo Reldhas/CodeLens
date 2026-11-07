@@ -9,7 +9,7 @@ main.shell-page{max-width:1100px}
 .practice-card dl{margin:8px 0 18px}.practice-card dt{font-size:10px;color:var(--palette-84969e)}.practice-card dd{margin:4px 0 0;font-size:14px}.preparing{font-size:12px;color:var(--palette-d7af79)!important;flex:0!important;margin:0;padding:11px 0}
 .continue-list{margin-top:28px}.continue-list h2{font-size:14px;font-weight:600;margin-bottom:10px}.continue-list button{display:flex;width:100%;justify-content:space-between;margin-top:8px;font-size:12px;text-align:left}
 .saved-draft{position:relative;margin-top:10px;border:1px solid var(--palette-343b3e);border-radius:7px;background:var(--palette-1b2023);overflow:hidden}
-.saved-draft summary{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 60px 15px 16px;list-style:none;cursor:pointer;font-size:12px;font-weight:500}
+.saved-draft summary{display:flex;align-items:center;justify-content:flex-start;gap:14px;padding:15px 60px 15px 16px;list-style:none;cursor:pointer;font-size:12px;font-weight:500}
 .saved-draft summary::-webkit-details-marker{display:none}
 .saved-draft summary>svg{flex-shrink:0;transition:transform .15s}
 .saved-draft details[open] summary>svg{transform:rotate(180deg)}

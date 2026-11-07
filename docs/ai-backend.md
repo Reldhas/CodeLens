@@ -1,6 +1,8 @@
 # Live AI review architecture
 
-Browser → same-origin Node backend → OpenAI Responses API → validated feedback → existing Lens Review panel.
+Gemini is now the default in `.env.example`. Follow [Gemini setup](gemini-setup.md). OpenAI instructions below apply only when `AI_PROVIDER=openai`; both providers use the same secured endpoints.
+
+Browser → same-origin Node backend → selected AI provider (Gemini or OpenAI) → validated feedback → existing Lens Review panel.
 
 Only Lens Review uses the API. Dry Run, Concept Match, curated exercises and model answers remain unchanged. Demo scoring is still available without credentials.
 

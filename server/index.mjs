@@ -3,7 +3,8 @@ import { randomBytes, timingSafeEqual, createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { resolve, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { validateSubmission, prepareRequest, parseFeedback } from './review.mjs';
+import { validateSubmission } from './review.mjs';
+import { providerConfig, providerRequest, providerFeedback } from './provider.mjs';
 
 export function createApp({ env = process.env, fetchImpl = fetch, now = Date.now } = {}) {
   const production = env.NODE_ENV === 'production';
@@ -11,7 +12,8 @@ export function createApp({ env = process.env, fetchImpl = fetch, now = Date.now
   if (production && (!origin.startsWith('https://') || !env.REVIEW_PASSWORD || env.REVIEW_PASSWORD.length < 16)) throw new Error('Production requires HTTPS APP_ORIGIN and REVIEW_PASSWORD of at least 16 characters.');
   const sessions = new Map(), loginAttempts = new Map();
   let active = 0, dailyCount = 0, day = '';
-  const configured = !!(env.OPENAI_API_KEY && env.OPENAI_MODEL && env.REVIEW_PASSWORD);
+  const provider = providerConfig(env);
+  const configured = !!(provider.key && provider.model && env.REVIEW_PASSWORD);
   const secure = production ? '; Secure' : '';
   const json = (res, status, body, extra = {}) => { res.writeHead(status, { 'Content-Type': 'application/json', ...extra }); res.end(JSON.stringify(body)); };
   const hash = s => createHash('sha256').update(s).digest();
@@ -34,7 +36,7 @@ export function createApp({ env = process.env, fetchImpl = fetch, now = Date.now
       for (const [ip, a] of loginAttempts) if (a.until <= time) loginAttempts.delete(ip);
       const token = /(?:^|;\s*)codelens_session=([a-f0-9]{64})(?:;|$)/.exec(req.headers.cookie || '')?.[1];
       const session = sessions.get(token);
-      if (path === '/api/status' && req.method === 'GET') return json(res, 200, { configured, authenticated: !!session });
+      if (path === '/api/status' && req.method === 'GET') return json(res, 200, { configured, authenticated: !!session, provider: provider.label });
       if (path.startsWith('/api/')) {
         if (req.method !== 'POST') return json(res, 405, { error: 'Method not allowed.' }, { Allow: 'POST' });
         if (req.headers.origin !== origin) return json(res, 403, { error: 'Request origin is not allowed.' });
@@ -65,9 +67,10 @@ export function createApp({ env = process.env, fetchImpl = fetch, now = Date.now
         try { review = validateSubmission(input); } catch (e) { return json(res, 400, { error: e.message }); }
         session.count++; dailyCount++; active++;
         try {
-          const upstream = await fetchImpl('https://api.openai.com/v1/responses', { method: 'POST', headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' }, body: JSON.stringify(prepareRequest(review, env.OPENAI_MODEL)), signal: AbortSignal.timeout(45000) });
+          const request = providerRequest(review, provider);
+          const upstream = await fetchImpl(request.url, { method: 'POST', headers: request.headers, body: JSON.stringify(request.body), signal: AbortSignal.timeout(45000) });
           if (!upstream.ok) throw new Error('Provider failed');
-          const result = parseFeedback(await upstream.json(), review.exercise);
+          const result = providerFeedback(await upstream.json(), review.exercise, provider);
           return json(res, 200, { result });
         } catch { return json(res, 502, { error: 'AI feedback is unavailable. Your draft is safe; try again later.' }); }
         finally { active--; }

@@ -44,3 +44,5 @@ for the walkthrough, execution limits, and implementation details.
 ## Live AI feedback
 
 See [backend setup, endpoints, request message and security](docs/ai-backend.md). The API key stays on the server. Run `npm run dev:api` alongside `npm run dev` after configuring `.env`.
+
+For the default Gemini provider, follow [Gemini API setup](docs/gemini-setup.md), then run `npm run check:ai` to verify your key with a synthetic review.

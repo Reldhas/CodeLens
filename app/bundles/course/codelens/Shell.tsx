@@ -1,6 +1,6 @@
 import ThemeSwitch from './ThemeSwitch';
 import { useEffect, useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Map } from 'lucide-react';
 import App from './App';
 import StudentHome from './StudentHome';
 import { features, type Go } from './features';
@@ -30,7 +30,7 @@ function Frame({ route, role, go, onRole }: { route: Route; role: Role; go: Go; 
         {role==='ta'?<div className="ta-tabs">{pages.map(p=><button key={p.id} className={route.id===p.id?'current':''} aria-current={route.id===p.id?'page':undefined} onClick={()=>go(p.id)}>{p.label}</button>)}</div>:<><ChevronRight size={14}/>{feature?<><button onClick={()=>go('home')}>Practice</button><ChevronRight size={14}/><span aria-current="page">{feature.label}</span></>:<span aria-current="page">Practice</span>}</>}
       </nav>
       <div className="topbar-actions">
-        {role==='student'&&pages.map(p=><button key={p.id} className={'header-link'+(route.id===p.id?' current':'')} onClick={()=>go(p.id)}>{p.label}</button>)}
+        {role==='student'&&pages.map(p=><button key={p.id} className={'header-link skill-map-button'+(route.id===p.id?' current':'')} onClick={()=>go(p.id)}><Map size={16} aria-hidden="true"/>{p.label}</button>)}
         {features.some(f=>f.role==='ta')&&(role==='ta'||!feature)&&<div className="role-switch" role="group" aria-label="View as"><button aria-pressed={role==='student'} onClick={()=>onRole('student')}>Student</button><button aria-pressed={role==='ta'} onClick={()=>onRole('ta')}>TA</button></div>}
         <ThemeSwitch theme={theme} onChange={setTheme}/>
       </div>

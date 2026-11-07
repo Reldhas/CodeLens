@@ -75,6 +75,10 @@
 .evaluation-results .review-assessment{font-size:14px;line-height:1.85}
 .evaluation-results .review-next-steps li{font-size:13px}
 .results-actions{display:flex;justify-content:flex-start;margin-top:24px}
+.results-heading-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.submitted-code>h3,.review-reference-code>h4{font-size:12px;margin:0 0 12px;font-weight:600}
+.review-reference-code{margin-top:20px}
+.submitted-code .answer-code{white-space:pre;overflow-wrap:normal;overflow-x:auto}
 #review-state-title:focus{outline:none}
 @media(max-width:1050px){.results-comparison{grid-template-columns:minmax(250px,.8fr) minmax(0,1.2fr)}.evaluation-results .feedback-content{grid-template-columns:1fr}.evaluation-results .ai-review-section{grid-column:auto}}
 @media(max-width:750px){.results-comparison{display:flex;flex-direction:column}.student-review-card,.evaluation-results{width:100%;box-sizing:border-box;padding:20px}.results-heading{align-items:flex-start;flex-wrap:wrap}.results-heading h1{font-size:25px}.evaluation-loading h1{font-size:24px}}

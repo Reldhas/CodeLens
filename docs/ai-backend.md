@@ -6,6 +6,10 @@ Browser → same-origin Node backend → selected AI provider (Gemini or OpenAI)
 
 Only Lens Review uses the API. Dry Run, Concept Match, curated exercises and model answers remain unchanged. Demo scoring is still available without credentials.
 
+## Local automatic sessions
+
+With `LOCAL_AUTO_LOGIN=true`, local development creates an HttpOnly session when a live review is submitted. This does not send the `.env` password to the browser. It is disabled in production, for non-loopback app origins, non-loopback connections, and forwarded requests. Without this option, the compact password field remains required. Selecting live AI feedback names the receiving provider beside Submit review.
+
 ## Run locally
 
 Requires Node.js 22 or newer. Create `.env` before running the backend commands.

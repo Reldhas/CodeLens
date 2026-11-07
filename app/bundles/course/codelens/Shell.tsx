@@ -1,5 +1,6 @@
+import ThemeSwitch from './ThemeSwitch';
 import { useEffect, useState } from 'react';
-import { Check, ChevronRight, CircleHelp, Moon, Sun, X } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import App from './App';
 import StudentHome from './StudentHome';
 import { features, type Go } from './features';
@@ -30,17 +31,14 @@ function Frame({ route, role, go, onRole }: { route: Route; role: Role; go: Go; 
       </nav>
       <div className="topbar-actions">
         {role==='student'&&pages.map(p=><button key={p.id} className={'header-link'+(route.id===p.id?' current':'')} onClick={()=>go(p.id)}>{p.label}</button>)}
-        {feature?.help&&<button className="icon-button" aria-label="How it works" onClick={()=>setShowHelp(true)}><CircleHelp size={17}/></button>}
         {features.some(f=>f.role==='ta')&&(role==='ta'||!feature)&&<div className="role-switch" role="group" aria-label="View as"><button aria-pressed={role==='student'} onClick={()=>onRole('student')}>Student</button><button aria-pressed={role==='ta'} onClick={()=>onRole('ta')}>TA</button></div>}
-        <button className="theme-toggle" onClick={()=>setTheme(theme==='dark'?'light':'dark')} aria-label={theme==='dark'?'Switch to light mode':'Switch to dark mode'} title={theme==='dark'?'Switch to light mode':'Switch to dark mode'}>{theme==='dark'?<Sun size={16}/>:<Moon size={16}/>}<span>{theme==='dark'?'Light mode':'Dark mode'}</span></button>
-        <span className="local-status"><span className="live-dot"/>Saved locally</span>
+        <ThemeSwitch theme={theme} onChange={setTheme}/>
       </div>
     </header>
     <main className={feature?.kind==='practice'?'review-page':'shell-page'}>
       {feature?<feature.Screen key={route.id+JSON.stringify(route.params)} {...screenProps}/>:<StudentHome {...screenProps}/>}
       <footer><span>Demo · Sample exercises and simulated grading</span></footer>
     </main>
-    {showHelp&&feature?.help&&<div className="modal-backdrop" onClick={()=>setShowHelp(false)}><section className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onClick={e=>e.stopPropagation()}><button autoFocus className="icon-button close-modal" aria-label="Close help" onClick={()=>setShowHelp(false)}><X/></button><h2 id="help-title">{feature.help.title}</h2><ol>{feature.help.steps.map(step=><li key={step}>{step}</li>)}</ol><button className="primary" onClick={()=>setShowHelp(false)}>Got it<Check size={16}/></button></section></div>}
   </div></div>;
 }
 export default function Shell() {

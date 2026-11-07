@@ -50,7 +50,7 @@ test('production refuses insecure setup; unconfigured service fails closed', asy
   const app = createApp({ env: {} }); await new Promise(r => app.listen(0, '127.0.0.1', r));
   t.after(() => new Promise(r => { app.close(r); app.closeAllConnections(); }));
   const base = `http://127.0.0.1:${app.address().port}`;
-  assert.deepEqual(await (await fetch(base + '/api/status')).json(), { configured: false, authenticated: false, provider: 'OpenAI' });
+  assert.deepEqual(await (await fetch(base + '/api/status')).json(), { configured: false, authenticated: false, provider: 'OpenAI', localAutoLogin: false });
   assert.equal((await fetch(base + '/api/review', { method: 'POST', headers: { Origin: 'http://127.0.0.1:5173' } })).status, 503);
 });
 test('session expires and repeated password guessing is throttled', async t => {

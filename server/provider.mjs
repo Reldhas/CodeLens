@@ -4,7 +4,7 @@ export function providerConfig(env) {
   const name = env.AI_PROVIDER || 'openai';
   if (!['gemini', 'openai'].includes(name)) throw new Error('AI_PROVIDER must be gemini or openai.');
   return name === 'gemini'
-    ? { name, label: 'Google Gemini', key: env.GEMINI_API_KEY, model: env.GEMINI_MODEL || 'gemini-3.8-flash' }
+    ? { name, label: 'Google Gemini', key: env.GEMINI_API_KEY, model: env.GEMINI_MODEL || 'gemini-3.5-flash' }
     : { name, label: 'OpenAI', key: env.OPENAI_API_KEY, model: env.OPENAI_MODEL };
 }
 

@@ -69,10 +69,24 @@ export function createApp({ env = process.env, fetchImpl = fetch, now = Date.now
         try {
           const request = providerRequest(review, provider);
           const upstream = await fetchImpl(request.url, { method: 'POST', headers: request.headers, body: JSON.stringify(request.body), signal: AbortSignal.timeout(45000) });
-          if (!upstream.ok) throw new Error('Provider failed');
+          if (!upstream.ok) {
+            const errors = {
+              400: [502, 'The AI provider rejected the request. Check the server model configuration.', 'provider_request'],
+              401: [503, 'The AI provider rejected the server API key. Check the backend configuration.', 'provider_auth'],
+              403: [503, 'AI access is denied. Check the API key permissions and project access.', 'provider_access'],
+              404: [503, 'The configured AI model is unavailable. Check the backend model setting.', 'provider_model'],
+              429: [429, 'The AI provider quota is exhausted. Check AI Studio usage and try again after the quota resets.', 'provider_quota'],
+              503: [503, 'The AI provider is temporarily overloaded or unavailable. Your draft is safe; try again later.', 'provider_unavailable']
+            };
+            const [status, error, code] = errors[upstream.status] || [502, 'The AI provider could not complete the review. Your draft is safe; try again later.', 'provider_failure'];
+            return json(res, status, { error, code });
+          }
           const result = providerFeedback(await upstream.json(), review.exercise, provider);
           return json(res, 200, { result });
-        } catch { return json(res, 502, { error: 'AI feedback is unavailable. Your draft is safe; try again later.' }); }
+        } catch (e) {
+          if (e.name === 'TimeoutError' || e.name === 'AbortError') return json(res, 504, { error: 'The AI review timed out. Your draft is safe; try again later.', code: 'provider_timeout' });
+          return json(res, 502, { error: 'AI feedback could not be received or validated. Your draft is safe; try again later.', code: 'provider_response' });
+        }
         finally { active--; }
       }
       if (!['GET', 'HEAD'].includes(req.method)) return json(res, 405, { error: 'Method not allowed.' });

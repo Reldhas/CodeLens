@@ -36,3 +36,14 @@ export function nextPractice(currentId, focus, randomFocus, rng = Math.random) {
   const remaining = studentExercises().filter(exercise => exercise.id !== currentId);
   return choosePractice('Random', focus, randomFocus, rng, remaining);
 }
+
+// A submitted attempt is saved with its own ID, apart from the draft it came from.
+// New attempts record their draft (reviewId); older ones are matched on exercise and answers.
+export function draftForAttempt(attempt, drafts) {
+  if (attempt.reviewId && drafts[attempt.reviewId]?.submitted) return attempt.reviewId;
+  const answers = review => JSON.stringify([review.comments, !!review.noIssues, review.justification || '']);
+  return Object.keys(drafts).find(id => drafts[id].submitted && (drafts[id].exerciseId || id) === attempt.exercise && answers(drafts[id]) === answers(attempt)) ?? null;
+}
+
+// When the draft is gone, the attempt itself has everything the feedback needs.
+export const attemptAsDraft = attempt => ({ exerciseId: attempt.exercise, focus: attempt.focus, randomFocus: attempt.randomFocus, comments: attempt.comments, noIssues: !!attempt.noIssues, justification: attempt.justification || '', submitted: true });

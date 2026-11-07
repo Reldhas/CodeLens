@@ -3,6 +3,16 @@
 A frontend-only Python code review practice demo for CS students, built with
 React, TypeScript, and Vite. No Ruby, Rails, database, or backend service is required.
 
+## Live demos
+
+[![Main demo](https://img.shields.io/badge/Live_Demo-Main-2563eb?style=for-the-badge)](https://codelens-nus.vercel.app/)
+[![Development demo](https://img.shields.io/badge/Live_Demo-Dev_%C2%B7_Live_AI-7c3aed?style=for-the-badge)](https://codelens-nus-dev.vercel.app/)
+
+- [Main demo](https://codelens-nus.vercel.app/) — the `main` branch, with simulated review scoring and feedback.
+- [Development demo](https://codelens-nus-dev.vercel.app/) — the `dev` branch, with live AI feedback for Lens Review.
+
+The setup instructions below apply to the frontend-only version on `main`.
+
 ## Start the demo
 
 Requires Node.js 22 or newer.

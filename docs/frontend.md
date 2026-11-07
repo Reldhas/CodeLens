@@ -1,6 +1,6 @@
 # CodeLens frontend demo
 
-Standalone React + TypeScript practice prototype. This guide covers Lens Review;
+React + TypeScript practice prototype. Optional live AI feedback is now available through the Node backend; see [setup, security and endpoints](ai-backend.md). This guide describes demo mode and covers Lens Review;
 Dry Run and Concept Match are in [the new features guide](new-features.md). No Rails, authentication,
 API keys, database, or backend is needed. The Ruby backend has been removed.
 
@@ -40,7 +40,7 @@ under `codelens-demo-v1`. Open annotation form text, selected lines, and review 
 30 days; records remain until browser storage is cleared. Storage failure falls
 back to session memory and displays a notice.
 
-Feedback is explicitly simulated. A deterministic heuristic checks focus,
+In demo mode feedback is explicitly simulated. A deterministic heuristic checks focus,
 issue keywords, line overlap, reasoning length, and fix keywords. Duplicate
 annotations cannot increase an issue's score. This is not semantic assessment,
 actual AI generation, or approved course material. Model answers

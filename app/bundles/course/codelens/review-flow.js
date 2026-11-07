@@ -1,4 +1,6 @@
 import { dimensions, exercises } from './model.js';
+import { approvedItems } from './course.js';
+const studentExercises = () => approvedItems('lens-review', exercises);
 
 export function eligibleExercises(topic, focus, bank = exercises) {
   if (!focus.length || focus.some(area => !dimensions.includes(area))) return [];
@@ -7,7 +9,7 @@ export function eligibleExercises(topic, focus, bank = exercises) {
 }
 
 // Choose once at the start of an attempt; never re-roll during rendering or reload.
-export function choosePractice(topic, focus, randomFocus, rng = Math.random, bank = exercises) {
+export function choosePractice(topic, focus, randomFocus, rng = Math.random, bank = studentExercises()) {
   const available = bank.filter(exercise => topic === 'Random' || exercise.topic === topic);
   const candidates = randomFocus ? available : eligibleExercises(topic, focus, bank);
   if (!candidates.length) throw new Error('No sample exercises match this topic and focus. Choose another combination.');
@@ -31,6 +33,17 @@ export function submissionError(draft, hasOpenAnnotation = false) {
 }
 
 export function nextPractice(currentId, focus, randomFocus, rng = Math.random) {
-  const remaining = exercises.filter(exercise => exercise.id !== currentId);
+  const remaining = studentExercises().filter(exercise => exercise.id !== currentId);
   return choosePractice('Random', focus, randomFocus, rng, remaining);
 }
+
+// A submitted attempt is saved with its own ID, apart from the draft it came from.
+// New attempts record their draft (reviewId); older ones are matched on exercise and answers.
+export function draftForAttempt(attempt, drafts) {
+  if (attempt.reviewId && drafts[attempt.reviewId]?.submitted) return attempt.reviewId;
+  const answers = review => JSON.stringify([review.comments, !!review.noIssues, review.justification || '']);
+  return Object.keys(drafts).find(id => drafts[id].submitted && (drafts[id].exerciseId || id) === attempt.exercise && answers(drafts[id]) === answers(attempt)) ?? null;
+}
+
+// When the draft is gone, the attempt itself has everything the feedback needs.
+export const attemptAsDraft = attempt => ({ ...(attempt.result?.source === 'ai' ? { liveResult: attempt.result } : {}), exerciseId: attempt.exercise, focus: attempt.focus, randomFocus: attempt.randomFocus, comments: attempt.comments, noIssues: !!attempt.noIssues, justification: attempt.justification || '', submitted: true });

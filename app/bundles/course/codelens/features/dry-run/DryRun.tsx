@@ -4,8 +4,9 @@ import AnswerFeedback from '../../AnswerFeedback';
 import CodeBlock from '../../CodeBlock';
 import DifficultySetup, { type Difficulty } from '../../DifficultySetup';
 import type { ScreenProps } from '../../features';
-import { eligibleItems, label, pickItems, readCourse, topicName } from '../../course.js';
+import { approvedItems, eligibleItems, label, pickItems, readCourse, topicName } from '../../course.js';
 import { createAttempt, getAttempt, lastDifficulty, listAttempts, updateAttempt } from '../../practice-log.js';
+import DemoFill from '../../DemoFill';
 import { displayOutput, dryRunFeedback, dryRunScore } from './feedback.js';
 import { questions } from './questions.js';
 import { runProgram } from './run-python.js';
@@ -18,8 +19,8 @@ export default function DryRunScreen({ params, go }: ScreenProps) {
   const [error, setError] = useState('');
   function start(difficulty: Difficulty) {
     const done = listAttempts('dry-run').flatMap((a: any) => a.exerciseIds);
-    const [question] = pickItems(eligibleItems(questions, difficulty, readCourse().publishedTopics), 1, done);
-    if (!question) { setError('Your TA is preparing this: no topics are published yet.'); return; }
+    const [question] = pickItems(eligibleItems(approvedItems('dry-run', questions), difficulty, readCourse().publishedTopics), 1, done);
+    if (!question) { setError('Your TA is preparing this: nothing is approved and published at this difficulty yet.'); return; }
     setAttemptId(createAttempt({ function: 'dry-run', title: question.title, difficulty, topicId: question.topicId, exerciseIds: [question.id], fromSuggestion: !!params.fromSuggestion }).id);
   }
   if (error) return <section className="review-setup difficulty-setup"><h1>Dry Run</h1><p>{error}</p><button className="secondary" onClick={()=>go('home')}>Back to practice</button></section>;
@@ -76,6 +77,7 @@ function Exercise({ attemptId, onHome, onNext }: { attemptId: string; onHome: ()
         </div>}
       </aside>
     </div>
+    {!submitted&&<DemoFill onGood={async()=>{const run=await runProgram(question.code);setPrediction(displayOutput(run.output,run.error));}} onWrong={()=>setPrediction(question.commonMistakes[0].output)}/>}
     <div className="submission-bar">{submitted?<div className="completed-actions"><button className="secondary" onClick={onHome}><ArrowLeft size={16}/>Back to practice</button><button className="primary" onClick={onNext}>Next question<ArrowRight size={17}/></button></div>:<><button className="secondary" onClick={onHome}><ArrowLeft size={16}/>Save and leave</button><button className="primary" disabled={!prediction.trim()||running} onClick={submit}>{running?'Running…':'Submit and run'}<ArrowRight size={17}/></button></>}</div>
   </>;
 }

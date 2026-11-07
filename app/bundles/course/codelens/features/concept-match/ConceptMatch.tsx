@@ -3,9 +3,10 @@ import { ArrowLeft, ArrowRight, Check, Sparkles, X } from 'lucide-react';
 import AnswerFeedback from '../../AnswerFeedback';
 import DifficultySetup, { type Difficulty } from '../../DifficultySetup';
 import type { ScreenProps } from '../../features';
-import { eligibleItems, label, pickItems, readCourse, topicName } from '../../course.js';
+import { approvedItems, eligibleItems, label, pickItems, readCourse, topicName } from '../../course.js';
 import { createAttempt, getAttempt, lastDifficulty, listAttempts, updateAttempt } from '../../practice-log.js';
-import { questionFeedback, setFeedback } from './feedback.js';
+import DemoFill from '../../DemoFill';
+import { demoAnswer, questionFeedback, setFeedback } from './feedback.js';
 import { questions as library } from './questions.js';
 import './concept-match.css';
 const levels = { easy: 'Clear story; wrong options are clearly unsuitable.', medium: 'Two plausible options to choose between.', hard: 'Several plausible options that differ in one requirement.' };
@@ -18,8 +19,8 @@ export default function ConceptMatchScreen({ params, go }: ScreenProps) {
   const [error, setError] = useState('');
   function start(difficulty: Difficulty) {
     const done = listAttempts('concept-match').flatMap((a: any) => a.exerciseIds);
-    const picked = pickItems(eligibleItems(library, difficulty, readCourse().publishedTopics), setSize, done);
-    if (!picked.length) { setError('Your TA is preparing this: no topics are published yet.'); return; }
+    const picked = pickItems(eligibleItems(approvedItems('concept-match', library), difficulty, readCourse().publishedTopics), setSize, done);
+    if (!picked.length) { setError('Your TA is preparing this: nothing is approved and published at this difficulty yet.'); return; }
     setAttemptId(createAttempt({ function: 'concept-match', title: `Set of ${picked.length} questions`, difficulty, topicId: null, exerciseIds: picked.map((q: any) => q.id), answers: { choices: {}, reasons: {}, checked: [] }, fromSuggestion: !!params.fromSuggestion }).id);
   }
   if (error) return <section className="review-setup difficulty-setup"><h1>Concept Match</h1><p>{error}</p><button className="secondary" onClick={()=>go('home')}>Back to practice</button></section>;
@@ -65,6 +66,7 @@ function QuestionSet({ attemptId, onHome, onNewSet }: { attemptId: string; onHom
   const locked = checked.includes(q.id);
   const choice = choices[q.id] ?? null;
   const reason = reasons[q.id] ?? '';
+  function fill(kind: 'good' | 'wrong') { const answer = demoAnswer(q, kind); saveAnswers({ choices: { ...choices, [q.id]: answer.choice }, reasons: { ...reasons, [q.id]: answer.reason } }); }
   const fb = locked ? questionFeedback(q, choice, reason) : null;
   const right = q.options.find((o: any) => o.id === q.correct);
   const chosen = q.options.find((o: any) => o.id === choice);
@@ -79,7 +81,7 @@ function QuestionSet({ attemptId, onHome, onNewSet }: { attemptId: string; onHom
             <span className="option-id">{locked&&o.id===q.correct?<Check size={14}/>:locked&&o.id===choice?<X size={14}/>:o.id}</span><span>{o.text}</span>
           </label>)}
         </fieldset>
-        <label className="concept-reason">Why? <span className="muted">(one line)</span><input value={reason} maxLength={200} readOnly={locked} placeholder="What in the story makes this concept fit?" onChange={e=>saveAnswers({reasons:{...reasons,[q.id]:e.target.value}})}/></label>
+        <label className="concept-reason">Why? <span className="muted">(one line, required)</span><input value={reason} maxLength={200} readOnly={locked} required aria-required="true" placeholder="What in the story makes this concept fit?" onChange={e=>saveAnswers({reasons:{...reasons,[q.id]:e.target.value}})}/></label>
       </section>
       <aside className="review-panel">
         {fb?<div className="feedback-content" aria-live="polite">
@@ -93,6 +95,7 @@ function QuestionSet({ attemptId, onHome, onNewSet }: { attemptId: string; onHom
         </div>:<div className="brief-content"><h3>How this works</h3><ol className="review-steps"><li>Read the story.</li><li>Pick the concept that fits it best.</li><li>Say why in one line.</li></ol><p className="muted concept-note">Several options may work. Look for the one that fits what the story asks for. Your answer locks when you check it.</p></div>}
       </aside>
     </div>
-    <div className="submission-bar">{locked?<div className="completed-actions"><button className="secondary" onClick={onHome}><ArrowLeft size={16}/>Back to practice</button><button className="primary" onClick={next}>{checked.length===questions.length?'See your results':'Next question'}<ArrowRight size={17}/></button></div>:<><button className="secondary" onClick={onHome}><ArrowLeft size={16}/>Save and leave</button><button className="primary" disabled={!choice} onClick={()=>check(q.id)}>Check answer<ArrowRight size={17}/></button></>}</div>
+    {!locked&&<DemoFill onGood={()=>fill('good')} onWrong={()=>fill('wrong')}/>}
+    <div className="submission-bar">{locked?<div className="completed-actions"><button className="secondary" onClick={onHome}><ArrowLeft size={16}/>Back to practice</button><button className="primary" onClick={next}>{checked.length===questions.length?'See your results':'Next question'}<ArrowRight size={17}/></button></div>:<><button className="secondary" onClick={onHome}><ArrowLeft size={16}/>Save and leave</button><button className="primary" disabled={!choice||!reason.trim()} onClick={()=>check(q.id)}>Check answer<ArrowRight size={17}/></button></>}</div>
   </>;
 }

@@ -22,6 +22,12 @@ export function questionFeedback(question, choice, reason) {
   else comment = `You wrote “${quote}”. What does the story need most, and which option gives it?`;
   return { questionId: question.id, correct, correctOption: question.correct, chosen: choice, reasonRating, comment };
 }
+// Demo answers: the right option with a reason that names what the story needs, or a wrong option with a vague reason.
+export function demoAnswer(question, kind) {
+  if (kind === 'wrong') return { choice: question.options.find(o => o.id !== question.correct).id, reason: 'I just guessed.' };
+  const first = sentences(question.options.find(o => o.id === question.correct).why)[0];
+  return { choice: question.correct, reason: hasAny(first, question.reasonSignals) ? first : `It needs a ${question.reasonSignals[0]}.` };
+}
 export function setFeedback(questions, choices, reasons) {
   const items = questions.map(q => questionFeedback(q, choices[q.id] ?? null, reasons[q.id] ?? ''));
   return { questions: items, correctCount: items.filter(item => item.correct).length };

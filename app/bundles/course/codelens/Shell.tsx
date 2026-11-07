@@ -1,6 +1,5 @@
-import ThemeSwitch from './ThemeSwitch';
 import { useEffect, useState } from 'react';
-import { ChevronRight, Map } from 'lucide-react';
+import { Check, ChevronRight, CircleHelp, Moon, Sun, X } from 'lucide-react';
 import App from './App';
 import StudentHome from './StudentHome';
 import { features, type Go } from './features';
@@ -30,15 +29,18 @@ function Frame({ route, role, go, onRole }: { route: Route; role: Role; go: Go; 
         {role==='ta'?<div className="ta-tabs">{pages.map(p=><button key={p.id} className={route.id===p.id?'current':''} aria-current={route.id===p.id?'page':undefined} onClick={()=>go(p.id)}>{p.label}</button>)}</div>:<><ChevronRight size={14}/>{feature?<><button onClick={()=>go('home')}>Practice</button><ChevronRight size={14}/><span aria-current="page">{feature.label}</span></>:<span aria-current="page">Practice</span>}</>}
       </nav>
       <div className="topbar-actions">
-        {role==='student'&&pages.map(p=><button key={p.id} className={'header-link skill-map-button'+(route.id===p.id?' current':'')} onClick={()=>go(p.id)}><Map size={16} aria-hidden="true"/>{p.label}</button>)}
+        {role==='student'&&pages.map(p=><button key={p.id} className={'header-link'+(route.id===p.id?' current':'')} onClick={()=>go(p.id)}>{p.label}</button>)}
+        {feature?.help&&<button className="icon-button" aria-label="How it works" onClick={()=>setShowHelp(true)}><CircleHelp size={17}/></button>}
         {features.some(f=>f.role==='ta')&&(role==='ta'||!feature)&&<div className="role-switch" role="group" aria-label="View as"><button aria-pressed={role==='student'} onClick={()=>onRole('student')}>Student</button><button aria-pressed={role==='ta'} onClick={()=>onRole('ta')}>TA</button></div>}
-        <ThemeSwitch theme={theme} onChange={setTheme}/>
+        <button className="theme-toggle" onClick={()=>setTheme(theme==='dark'?'light':'dark')} aria-label={theme==='dark'?'Switch to light mode':'Switch to dark mode'} title={theme==='dark'?'Switch to light mode':'Switch to dark mode'}>{theme==='dark'?<Sun size={16}/>:<Moon size={16}/>}<span>{theme==='dark'?'Light mode':'Dark mode'}</span></button>
+        <span className="local-status"><span className="live-dot"/>Saved locally</span>
       </div>
     </header>
     <main className={feature?.kind==='practice'?'review-page':'shell-page'}>
       {feature?<feature.Screen key={route.id+JSON.stringify(route.params)} {...screenProps}/>:<StudentHome {...screenProps}/>}
       <footer><span>Demo · Sample exercises and simulated grading</span></footer>
     </main>
+    {showHelp&&feature?.help&&<div className="modal-backdrop" onClick={()=>setShowHelp(false)}><section className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onClick={e=>e.stopPropagation()}><button autoFocus className="icon-button close-modal" aria-label="Close help" onClick={()=>setShowHelp(false)}><X/></button><h2 id="help-title">{feature.help.title}</h2><ol>{feature.help.steps.map(step=><li key={step}>{step}</li>)}</ol><button className="primary" onClick={()=>setShowHelp(false)}>Got it<Check size={16}/></button></section></div>}
   </div></div>;
 }
 export default function Shell() {
@@ -46,6 +48,6 @@ export default function Shell() {
   const [role, setRole] = useState<Role>('student');
   const go: Go = (id, params = {}) => { setRoute({ id, params }); window.scrollTo({ top: 0 }); };
   const studentPage = features.find(f => f.role === 'student' && f.kind === 'page');
-  if (route.id === 'lens-review') return <App onHome={() => go('home')} onHistoryBack={() => go(studentPage?.id || 'home')} extraLink={studentPage && { label: studentPage.label, onClick: () => go(studentPage.id) }} openReview={route.params.reviewId} openAttempt={route.params.attemptId}/>;
+  if (route.id === 'lens-review') return <App onHome={() => go('home')} extraLink={studentPage && { label: studentPage.label, onClick: () => go(studentPage.id) }} openReview={route.params.reviewId} openAttempt={route.params.attemptId}/>;
   return <Frame route={route} role={role} go={go} onRole={next => { setRole(next); go(next === 'ta' ? taHome() : 'home'); }}/>;
 }

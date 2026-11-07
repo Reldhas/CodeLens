@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateSubmission } from './review.mjs';
+import { validateConceptSubmission, prepareConceptRequest, parseConceptFeedback } from './concept-match.mjs';
 import { providerConfig, providerRequest, providerFeedback } from './provider.mjs';
 
 export function createApp({ env = process.env, fetchImpl = fetch, now = Date.now } = {}) {
@@ -57,7 +58,8 @@ export function createApp({ env = process.env, fetchImpl = fetch, now = Date.now
         }
         if (!session) return json(res, 401, { error: 'Sign in to use live review.' });
         if (path === '/api/logout') { sessions.delete(token); return json(res, 200, {}, { 'Set-Cookie': `codelens_session=; HttpOnly; SameSite=Strict; Path=/api; Max-Age=0${secure}` }); }
-        if (path !== '/api/review') return json(res, 404, { error: 'Not found.' });
+        if (!['/api/review', '/api/concept-match'].includes(path)) return json(res, 404, { error: 'Not found.' });
+        const concept = path === '/api/concept-match';
         if (time - session.window >= 60000) { session.count = 0; session.window = time; }
         if (session.count >= 5 || active >= 3) return json(res, 429, { error: 'Review limit reached. Please try again in a minute.' });
         const today = new Date(time).toISOString().slice(0, 10);
@@ -66,10 +68,10 @@ export function createApp({ env = process.env, fetchImpl = fetch, now = Date.now
         if (!Number.isInteger(limit) || limit < 1 || dailyCount >= limit) return json(res, 429, { error: 'The server daily review limit has been reached.' });
         let review;
         const input = await body(req);
-        try { review = validateSubmission(input); } catch (e) { return json(res, 400, { error: e.message }); }
+        try { review = concept ? validateConceptSubmission(input) : validateSubmission(input); } catch (e) { return json(res, 400, { error: e.message }); }
         session.count++; dailyCount++; active++;
         try {
-          const request = providerRequest(review, provider);
+          const request = providerRequest(review, provider, concept ? prepareConceptRequest : undefined);
           const upstream = await fetchImpl(request.url, { method: 'POST', headers: request.headers, body: JSON.stringify(request.body), signal: AbortSignal.timeout(45000) });
           if (!upstream.ok) {
             const errors = {
@@ -83,7 +85,7 @@ export function createApp({ env = process.env, fetchImpl = fetch, now = Date.now
             const [status, error, code] = errors[upstream.status] || [502, 'The AI provider could not complete the review. Your draft is safe; try again later.', 'provider_failure'];
             return json(res, status, { error, code });
           }
-          const result = providerFeedback(await upstream.json(), review.exercise, provider);
+          const result = providerFeedback(await upstream.json(), concept ? review : review.exercise, provider, concept ? parseConceptFeedback : undefined);
           return json(res, 200, { result });
         } catch (e) {
           if (e.name === 'TimeoutError' || e.name === 'AbortError') return json(res, 504, { error: 'The AI review timed out. Your draft is safe; try again later.', code: 'provider_timeout' });

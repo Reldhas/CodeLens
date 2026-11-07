@@ -8,8 +8,8 @@ export function providerConfig(env) {
     : { name, label: 'OpenAI', key: env.OPENAI_API_KEY, model: env.OPENAI_MODEL };
 }
 
-export function providerRequest(review, config) {
-  const request = prepareRequest(review, config.model);
+export function providerRequest(review, config, prepare = prepareRequest) {
+  const request = prepare(review, config.model);
   if (config.name === 'openai') return { url: 'https://api.openai.com/v1/responses', headers: { Authorization: `Bearer ${config.key}`, 'Content-Type': 'application/json' }, body: request };
   if (!/^[a-zA-Z0-9._-]+$/.test(config.model)) throw new Error('Invalid Gemini model identifier.');
   return {
@@ -23,10 +23,10 @@ export function providerRequest(review, config) {
   };
 }
 
-export function providerFeedback(response, exercise, config) {
-  if (config.name === 'openai') return parseFeedback(response, exercise);
+export function providerFeedback(response, exercise, config, parse = parseFeedback) {
+  if (config.name === 'openai') return parse(response, exercise);
   const candidate = response.candidates?.[0];
   if (response.promptFeedback?.blockReason || candidate?.finishReason !== 'STOP') throw new Error('Incomplete or blocked Gemini response');
   const text = candidate.content?.parts?.filter(p => !p.thought && typeof p.text === 'string').map(p => p.text).join('');
-  return parseFeedback({ status: 'completed', output: [{ content: [{ type: 'output_text', text }] }] }, exercise);
+  return parse({ status: 'completed', output: [{ content: [{ type: 'output_text', text }] }] }, exercise);
 }

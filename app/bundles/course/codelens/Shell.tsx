@@ -37,7 +37,7 @@ function Frame({ route, role, go, onRole }: { route: Route; role: Role; go: Go; 
     </header>
     <main className={feature?.kind==='practice'?'review-page':'shell-page'}>
       {feature?<feature.Screen key={route.id+JSON.stringify(route.params)} {...screenProps}/>:<StudentHome {...screenProps}/>}
-      <footer><span>Demo · Sample exercises and simulated grading</span></footer>
+      <footer><span>Sample exercises · Live AI or demo feedback</span></footer>
     </main>
   </div></div>;
 }

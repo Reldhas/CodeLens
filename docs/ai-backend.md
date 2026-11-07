@@ -4,7 +4,15 @@ Gemini is now the default in `.env.example`. Follow [Gemini setup](gemini-setup.
 
 Browser → same-origin Node backend → selected AI provider (Gemini or OpenAI) → validated feedback → existing Lens Review panel.
 
-Only Lens Review uses the API. Dry Run, Concept Match, curated exercises and model answers remain unchanged. Demo scoring is still available without credentials.
+Lens Review and Concept Match support live evaluation. Dry Run uses demo scoring. Curated exercises and model answers remain unchanged. Demo scoring is still available without credentials.
+
+## Concept Match
+
+`POST /api/concept-match` accepts `{ questionId, choice, reason }` (a nonblank explanation of at most 200 characters). It shares the existing session, origin checks, provider configuration, timeouts, concurrency cap and daily quota with Lens Review. Questions, options and reference answers are resolved on the server; client-supplied references are ignored. Each submitted answer uses one provider request.
+
+The server awards 5 points for the correct concept choice; AI assesses the meaning of the explanation for up to 5 more points. It validates the response and computes the total itself. Demo explanation scores use keyword rules and are clearly labeled. Skill Map accuracy continues to track correct concept choices, so it remains comparable with past attempts. Failed requests preserve the answer for retry and never silently replace AI feedback with demo feedback.
+
+During evaluation, the question is replaced by a loading state. The dedicated answer results page displays the score breakdown, expandable student submission, AI feedback and curated explanations. Evaluations are saved with the local attempt and reopen from the set summary. Any sent TA feedback matching the set's attempt ID appears on the set summary.
 
 ## Local automatic sessions
 

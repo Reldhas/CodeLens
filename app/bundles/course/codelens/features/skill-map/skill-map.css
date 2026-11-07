@@ -5,3 +5,6 @@
 .ta-chip{font-style:normal;margin-left:8px;padding:1px 5px;border-radius:4px;background:var(--palette-293328);color:var(--palette-b6dc92)}
 @media(max-width:800px){.skill-grid{grid-template-columns:1fr}.suggestion{display:block}.suggestion .primary{margin-top:14px}}
 .suggestion .preparing{flex:none!important;white-space:nowrap;padding:0}@media(max-width:800px){.suggestion .preparing{margin-top:14px}}
+.history-open-row{display:flex;align-items:center;gap:16px;width:100%;padding:0;border:0;text-align:left;color:inherit;background:transparent;cursor:pointer;font-size:12px}
+.history-open-row>span{flex:1;min-width:0}.history-open-row b{color:var(--palette-b6dc92);white-space:nowrap}
+.history-open-row:hover strong{color:var(--palette-b6dc92)}

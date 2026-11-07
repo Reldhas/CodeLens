@@ -46,4 +46,4 @@ export function draftForAttempt(attempt, drafts) {
 }
 
 // When the draft is gone, the attempt itself has everything the feedback needs.
-export const attemptAsDraft = attempt => ({ exerciseId: attempt.exercise, focus: attempt.focus, randomFocus: attempt.randomFocus, comments: attempt.comments, noIssues: !!attempt.noIssues, justification: attempt.justification || '', submitted: true });
+export const attemptAsDraft = attempt => ({ ...(attempt.result?.source === 'ai' ? { liveResult: attempt.result } : {}), ...(attempt.result ? { savedResult: attempt.result } : {}), ...(attempt.sample ? { sample: true, sampleNote: attempt.sampleNote } : {}), exerciseId: attempt.exercise, focus: attempt.focus, randomFocus: attempt.randomFocus, comments: attempt.comments, noIssues: !!attempt.noIssues, justification: attempt.justification || '', submitted: true });

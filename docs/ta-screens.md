@@ -26,8 +26,10 @@ These settings really change what students get:
 
 - A function with too few approved examples shows "Your TA is preparing this".
   This applies to all three functions.
+- Students only get approved exercises. Rejected, pending and never-generated
+  ones are never picked, even while the type stays open.
 - Published topics limit Dry Run and Concept Match. Lens Review keeps its own
-  exercises and topics.
+  topics.
 
 Generation is simulated: the samples are written in advance.
 
@@ -43,7 +45,8 @@ Waiting items come first, then those with more flags, then the newest.
 
 The student then gets a notice on the home screen, opening a page with the score,
 summary and TA comments. An adjusted score also changes the Skill Map, when that
-screen is merged.
+screen is merged. The latest send wins: setting the score or summary back to the
+AI's version after an earlier edit shows the AI's version again.
 
 ## Class Insights
 

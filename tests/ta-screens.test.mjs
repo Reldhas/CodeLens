@@ -5,7 +5,9 @@ import { buildQueue, confidenceOf, makeReview, queueCounts, statusOf, taFeedback
 import { sampleReviews, sampleSubmissions } from '../app/bundles/course/codelens/features/review-queue/submissions.js';
 import { commonGaps, computeInsights, feedbackQuality } from '../app/bundles/course/codelens/features/class-insights/insights.js';
 import { sampleClass, sampleVotes } from '../app/bundles/course/codelens/features/class-insights/sample-class.js';
-import { approvedCounts, nextSamples, regenerate, seedStatuses, validRequired } from '../app/bundles/course/codelens/features/content-studio/studio.js';
+import { approvedCounts, approvedIds, nextSamples, regenerate, seedStatuses, validRequired } from '../app/bundles/course/codelens/features/content-studio/studio.js';
+import { approvedItems, defaultCourse } from '../app/bundles/course/codelens/course.js';
+import { summarizeLensReview } from '../app/bundles/course/codelens/attempt-summary.js';
 const seats = exercises.find(e => e.id === 'seats');
 const good = { id: 'c', dimension: 'Efficiency', start: 6, end: 9, claim: 'The nested loop scans it', reasoning: 'Slow', fix: 'Set' };
 const sub = (id, date, extra = {}) => ({ id, student: id, exercise: 'seats', date, comments: [good], ...extra });
@@ -74,3 +76,24 @@ test('regenerate replaces a sample, or says none are left',()=>{
   assert.equal(regenerate(library,{...s,d5:'pending',d6:'pending'},library[3]),null);
 });
 test('examples required stays in range',()=>{assert.ok(validRequired(3));assert.equal(validRequired(0),false);assert.equal(validRequired(2.5),false);});
+test('putting back the AI score or summary wins over an earlier edit',()=>{
+  const base={attemptId:'a',originalSummary:'AI',originalScore:5};
+  const first=makeReview({...base,action:'send',summary:'TA',score:8,now:'1'});
+  const back=makeReview({...base,action:'send',summary:'AI',score:5,now:'2'});
+  assert.equal(back.adjustedScore,null);assert.ok(back.setsScore&&back.setsSummary);
+  const f=taFeedbackFor([first,back]);
+  assert.equal(f.adjustedScore,null);assert.equal(f.editedSummary,null);
+  // A later send that leaves both alone keeps the latest decision.
+  const comment=makeReview({...base,action:'send',comment:'Nice',now:'3'});
+  assert.equal(taFeedbackFor([first,comment]).adjustedScore,8);
+  assert.equal(taFeedbackFor([first,back,comment]).adjustedScore,null);
+  assert.equal(summarizeLensReview({id:'a',exercise:'seats',date:'x',comments:[],result:{total:5}},[first,back]).score,0.5);
+});
+test('students only get approved exercises once Content Studio is used',()=>{
+  const lib=[{id:'q1',function:'dry-run'},{id:'q2',function:'dry-run'},{id:'q3',function:'dry-run'},{id:'lr-seats',exerciseId:'seats',function:'lens-review'}];
+  const ids=approvedIds(lib,{q1:'approved',q2:'rejected',q3:'pending','lr-seats':'approved'});
+  assert.deepEqual(ids['dry-run'],['q1']);assert.deepEqual(ids['lens-review'],['seats']);
+  const bank=[{id:'q1'},{id:'q2'},{id:'q3'},{id:'q4'}];
+  assert.deepEqual(approvedItems('dry-run',bank,{...defaultCourse(),approvedIds:ids}).map(q=>q.id),['q1']);
+  assert.equal(approvedItems('dry-run',bank,defaultCourse()).length,4);
+});

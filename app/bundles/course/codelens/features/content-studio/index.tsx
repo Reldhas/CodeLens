@@ -5,9 +5,9 @@ import type { Feature } from '../../features';
 import { functionNames, label, practiceFunctions, readCourse, topicName, topics, writeCourse } from '../../course.js';
 import { exercises } from '../../model.js';
 import { generatedSamples } from './generated-samples.js';
-import { approvedCounts, nextSamples, regenerate, seedStatuses } from './studio.js';
+import { approvedCounts, approvedIds, nextSamples, regenerate, seedStatuses } from './studio.js';
 import './content-studio.css';
-const lensSamples = exercises.map(e => ({ id: 'lr-' + e.id, function: 'lens-review', topicId: null, difficulty: null, title: `${e.title} (${e.findings.length} planted ${e.findings.length === 1 ? 'issue' : 'issues'})`, code: e.code.join('\n'), explanation: e.findings.map(f => f.claim).join(' ') || 'This code has no planted issues.', topicLabel: e.topic }));
+const lensSamples = exercises.map(e => ({ id: 'lr-' + e.id, exerciseId: e.id, function: 'lens-review', topicId: null, difficulty: null, title: `${e.title} (${e.findings.length} planted ${e.findings.length === 1 ? 'issue' : 'issues'})`, code: e.code.join('\n'), explanation: e.findings.map(f => f.claim).join(' ') || 'This code has no planted issues.', topicLabel: e.topic }));
 const library: any[] = [...generatedSamples, ...lensSamples];
 const key = 'codelens-studio-v1';
 const seedMaterials = [
@@ -35,7 +35,8 @@ function ContentStudio() {
   const [message, setMessage] = useState('');
   const save = (next: any) => { setStudio(next); try { localStorage.setItem(key, JSON.stringify(next)); } catch { /* Lasts for this screen. */ } };
   const counts = approvedCounts(library, studio.statuses) as Record<string, number>;
-  useEffect(() => { writeCourse({ ...course, approved: counts }); }, [studio.statuses, course]);
+  // Students get only approved exercises: the counts open an exercise type, the IDs are what they can be given.
+  useEffect(() => { writeCourse({ ...course, approved: counts, approvedIds: approvedIds(library, studio.statuses) }); }, [studio.statuses, course]);
   const sources = studio.materials.filter((m: any) => fn === 'lens-review' || m.topicId === topic);
   const shown = library.filter(s => s.function === fn && statusNames[studio.statuses[s.id]]);
   const current = shown.find(s => s.id === selected);

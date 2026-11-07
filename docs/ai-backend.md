@@ -8,7 +8,7 @@ Only Lens Review uses the API. Dry Run, Concept Match, curated exercises and mod
 
 ## Run locally
 
-Requires Node 22.9+ for the optional environment-file flag.
+Requires Node.js 22 or newer. Create `.env` before running the backend commands.
 
 1. Copy `.env.example` to `.env`.
 2. Set `OPENAI_API_KEY`, `OPENAI_MODEL` and a strong `REVIEW_PASSWORD`. These are server-only values. Never add a `VITE_` prefix.

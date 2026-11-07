@@ -11,7 +11,7 @@ the header, on every student screen including Lens Review.
 - **By function:** Dry Run, Concept Match and Lens Review.
 - **Weakest lens:** with a short explanation and a Practise this button. It also
   appears on the home screen as Suggested for you.
-- **Recent feedback:** the last 8 attempts. Real attempts can be reopened.
+- **Recent feedback:** the last 8 attempts. Real attempts can be reopened: a Lens Review opens on that attempt's feedback.
 
 ## Rules
 

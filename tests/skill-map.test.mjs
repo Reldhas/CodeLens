@@ -28,3 +28,17 @@ test('usual slip names where the lens loses points',()=>{
   assert.match(usualSlip(map,'Correctness'),/Lens Review/);
 });
 test('sample history gives the demo a weakest lens',()=>assert.ok(computeSkillMap(sampleHistory).weakest));
+test('a Lens Review attempt reopens its own submitted draft, not the latest one',async()=>{
+  const { draftForAttempt, attemptAsDraft } = await import('../app/bundles/course/codelens/review-flow.js');
+  const comment = id => ({ id, start: 1, end: 2, dimension: 'Efficiency', claim: 'c', reasoning: 'r', fix: 'f' });
+  const drafts = {
+    old: { exerciseId: 'seats', comments: [comment('a')], submitted: true },
+    latest: { exerciseId: 'seats', comments: [comment('b')], submitted: true },
+    open: { exerciseId: 'seats', comments: [comment('a')], submitted: false },
+  };
+  assert.equal(draftForAttempt({ id: 'x', reviewId: 'latest', exercise: 'seats', comments: [] }, drafts), 'latest');
+  assert.equal(draftForAttempt({ id: 'y', exercise: 'seats', comments: [comment('a')] }, drafts), 'old');
+  const gone = { id: 'z', exercise: 'seats', comments: [comment('c')], focus: ['Efficiency'] };
+  assert.equal(draftForAttempt(gone, drafts), null);
+  assert.deepEqual(attemptAsDraft(gone), { exerciseId: 'seats', focus: ['Efficiency'], randomFocus: undefined, comments: [comment('c')], noIssues: false, justification: '', submitted: true });
+});

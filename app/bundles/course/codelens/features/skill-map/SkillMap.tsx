@@ -45,7 +45,7 @@ export default function SkillMap(props: ScreenProps) {
       {items.map(s=><details className="history-item" key={s.id}><summary><Sparkles size={18}/><span><strong>{s.title}</strong><small>{(functionNames as any)[s.function]} · {new Date(s.date).toLocaleDateString()}{(s.taComment||sent.has(s.id))&&<em className="ta-chip">TA feedback</em>}</small></span><b>{s.shown}</b></summary>
         {s.note&&<div className="history-comment"><strong>AI feedback</strong><p>{s.note}</p></div>}
         {s.taComment&&<div className="history-comment"><strong>Your TA</strong><p>{s.taComment}</p></div>}
-        {s.real&&<button className="text-button" onClick={()=>s.function==='lens-review'?(sent.has(s.id)&&props.has('ta-feedback')?props.go('ta-feedback',{attemptId:s.id}):props.go('lens-review')):props.go(s.function,{attemptId:s.id})}>Open<ArrowRight size={15}/></button>}
+        {s.real&&<button className="text-button" onClick={()=>s.function==='lens-review'?(sent.has(s.id)&&props.has('ta-feedback')?props.go('ta-feedback',{attemptId:s.id}):props.go('lens-review',{attemptId:s.id})):props.go(s.function,{attemptId:s.id})}>Open<ArrowRight size={15}/></button>}
       </details>)}
     </section>
   </div>;

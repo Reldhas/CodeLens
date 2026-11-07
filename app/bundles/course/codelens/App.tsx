@@ -5,15 +5,16 @@ import { highlight } from './CodeBlock';
 import AnswerFeedback, { type AnswerRating } from './AnswerFeedback';
 import CriterionGuide from './CriterionGuide';
 import ReviewSetup, { type PracticeConfig } from './ReviewSetup';
-import { submissionError, nextPractice } from './review-flow.js';
+import { submissionError, nextPractice, draftForAttempt, attemptAsDraft } from './review-flow.js';
 import { exercises, dimensions, assess, consoleExample } from './model.js';
 type Comment = { id: string; start: number; end: number; dimension: string; claim: string; reasoning: string; fix: string };
-type Attempt = { id: string; exercise: string; date: string; comments: Comment[]; result: ReturnType<typeof assess>; focus?: string[]; randomFocus?: boolean; noIssues?: boolean; justification?: string };
+type Attempt = { id: string; reviewId?: string; exercise: string; date: string; comments: Comment[]; result: ReturnType<typeof assess>; focus?: string[]; randomFocus?: boolean; noIssues?: boolean; justification?: string };
 type Draft = { ratings?: { feedback?: AnswerRating; answer?: AnswerRating }; comments: Comment[]; submitted: boolean; exerciseId?: string; topic?: string; focus?: string[]; randomFocus?: boolean; noIssues?: boolean; justification?: string; editor?: { range: number[]; form: typeof empty; editing: string | null } };
 const empty = { claim: '', reasoning: '', fix: '', dimension: 'Efficiency' };
 function readSaved() { try { const s = JSON.parse(localStorage.getItem('codelens-demo-v1') || '{}'); return { drafts: s.drafts || {}, attempts: Array.isArray(s.attempts) ? s.attempts : [], currentReviewId: s.currentReviewId || Object.keys(s.drafts || {})[0] || 'seats' }; } catch { return { drafts: {}, attempts: [], currentReviewId: 'seats' }; } }
 // In the practice shell (onHome set), saved reviews are listed on the home screen, which opens one with openReview.
-export default function App({ onHome, extraLink, openReview }: { onHome?: () => void; extraLink?: { label: string; onClick: () => void }; openReview?: string }) {
+// openAttempt opens a submitted attempt (an attempt ID, not a draft ID) on its feedback.
+export default function App({ onHome, extraLink, openReview, openAttempt }: { onHome?: () => void; extraLink?: { label: string; onClick: () => void }; openReview?: string; openAttempt?: string }) {
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     try { return localStorage.getItem('codelens-theme') === 'light' ? 'light' : 'dark'; }
     catch { return 'dark'; }
@@ -66,11 +67,20 @@ export default function App({ onHome, extraLink, openReview }: { onHome?: () => 
     setForm(saved.editor?.form || {...empty,dimension:saved.focus?.[0] || dimensions[0]});
     setTab(saved.submitted?'feedback':saved.editor?.range.length?'annotations':'brief'); setError('');
   }
-  useEffect(()=>{ if (openReview && drafts[openReview]) resumeReview(openReview); },[]);
+  function showAttempt(id: string) {
+    const attempt = attempts.find(a=>a.id===id);
+    if (!attempt) return;
+    const existing = draftForAttempt(attempt, drafts);
+    const key = existing || attempt.id;
+    if (!existing) setDrafts(d=>({...d,[key]:attemptAsDraft(attempt)}));
+    setReviewId(key); setShowSetup(false); setPage('workspace'); setTab('feedback');
+    setRange([]); setEditing(null); setForm({...empty,dimension:attempt.focus?.[0] || dimensions[0]}); setError('');
+  }
+  useEffect(()=>{ if (openAttempt) showAttempt(openAttempt); else if (openReview && drafts[openReview]) resumeReview(openReview); },[]);
   function clearEditor() { setRange([]); setEditing(null); setForm({...empty,dimension:allowedFocus[0]}); setError(''); }
   function selectExercise(_id:string) { setPage('workspace'); setShowSetup(true); }
   function saveComment(e:React.FormEvent) { e.preventDefault(); if (!form.claim.trim() || !form.reasoning.trim() || !form.fix.trim()) { setError('Complete the claim, reasoning, and proposed fix.'); return; } const comment = { ...form, id: editing || crypto.randomUUID(), start: Math.min(...range), end: Math.max(...range) }; update({...draft,noIssues:false,justification:'',comments: editing ? draft.comments.map(c=>c.id===editing?comment:c) : [...draft.comments,comment]}); clearEditor(); }
-  function submit() { const message = submissionError(draft,range.length>0); if (message) { setError(message); return; } update({...draft,submitted:true}); setAttempts(a=>[...a,{id:crypto.randomUUID(),exercise:exerciseId,date:new Date().toISOString(),comments:draft.comments,result,focus:[...focus],randomFocus:draft.randomFocus,noIssues:draft.noIssues,justification:draft.justification}]); clearEditor(); setTab('feedback'); }
+  function submit() { const message = submissionError(draft,range.length>0); if (message) { setError(message); return; } update({...draft,submitted:true}); setAttempts(a=>[...a,{id:crypto.randomUUID(),reviewId,exercise:exerciseId,date:new Date().toISOString(),comments:draft.comments,result,focus:[...focus],randomFocus:draft.randomFocus,noIssues:draft.noIssues,justification:draft.justification}]); clearEditor(); setTab('feedback'); }
   function nextExercise() { startReview(nextPractice(exercise.id, focus, !!draft.randomFocus)); window.scrollTo({top:0,behavior:'smooth'}); }
   const recent = attempts.filter(a=>Date.now()-new Date(a.date).getTime()<=30*86400000);
   return <div className="app-shell">

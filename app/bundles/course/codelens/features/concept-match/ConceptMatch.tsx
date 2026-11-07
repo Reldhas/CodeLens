@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, Check, Sparkles, X } from 'lucide-react';
 import AnswerFeedback from '../../AnswerFeedback';
 import DifficultySetup, { type Difficulty } from '../../DifficultySetup';
 import type { ScreenProps } from '../../features';
-import { eligibleItems, label, pickItems, readCourse, topicName } from '../../course.js';
+import { approvedItems, eligibleItems, label, pickItems, readCourse, topicName } from '../../course.js';
 import { createAttempt, getAttempt, lastDifficulty, listAttempts, updateAttempt } from '../../practice-log.js';
 import DemoFill from '../../DemoFill';
 import { demoAnswer, questionFeedback, setFeedback } from './feedback.js';
@@ -19,8 +19,8 @@ export default function ConceptMatchScreen({ params, go }: ScreenProps) {
   const [error, setError] = useState('');
   function start(difficulty: Difficulty) {
     const done = listAttempts('concept-match').flatMap((a: any) => a.exerciseIds);
-    const picked = pickItems(eligibleItems(library, difficulty, readCourse().publishedTopics), setSize, done);
-    if (!picked.length) { setError('Your TA is preparing this: no topics are published yet.'); return; }
+    const picked = pickItems(eligibleItems(approvedItems('concept-match', library), difficulty, readCourse().publishedTopics), setSize, done);
+    if (!picked.length) { setError('Your TA is preparing this: nothing is approved and published at this difficulty yet.'); return; }
     setAttemptId(createAttempt({ function: 'concept-match', title: `Set of ${picked.length} questions`, difficulty, topicId: null, exerciseIds: picked.map((q: any) => q.id), answers: { choices: {}, reasons: {}, checked: [] }, fromSuggestion: !!params.fromSuggestion }).id);
   }
   if (error) return <section className="review-setup difficulty-setup"><h1>Concept Match</h1><p>{error}</p><button className="secondary" onClick={()=>go('home')}>Back to practice</button></section>;

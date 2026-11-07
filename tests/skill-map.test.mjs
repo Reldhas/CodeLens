@@ -28,6 +28,25 @@ test('usual slip names where the lens loses points',()=>{
   assert.match(usualSlip(map,'Correctness'),/Lens Review/);
 });
 test('sample history gives the demo a weakest lens',()=>assert.ok(computeSkillMap(sampleHistory).weakest));
+test('every sample Lens Review opens a concrete result with the same displayed score',async()=>{
+  const { sampleLensAttempt } = await import('../app/bundles/course/codelens/features/skill-map/sample-history.js');
+  const { attemptAsDraft } = await import('../app/bundles/course/codelens/review-flow.js');
+  const { exercises } = await import('../app/bundles/course/codelens/model.js');
+  for(const summary of sampleHistory.filter(s=>s.function==='lens-review')){
+    const attempt=sampleLensAttempt(summary.id);
+    assert.ok(exercises.some(e=>e.id===attempt.exercise));assert.equal(attempt.sample,true);
+    assert.ok(attempt.comments.length);assert.equal(attempt.result.total,summary.score*10);
+    assert.equal(Object.values(attempt.result.rubric).reduce((a,b)=>a+b,0),attempt.result.total);
+    assert.equal(attemptAsDraft(attempt).savedResult.total,attempt.result.total);
+  }
+  assert.equal(sampleLensAttempt('missing'),null);
+});
+test('reopening a review without its draft preserves the saved AI evaluation',async()=>{
+  const { attemptAsDraft } = await import('../app/bundles/course/codelens/review-flow.js');
+  const result={source:'ai',total:8.25,summary:'Original feedback',improvements:[],rubric:{claim:2.5,evidence:2.5,reasoning:2,fix:1.25}};
+  const draft=attemptAsDraft({exercise:'seats',comments:[],result});
+  assert.deepEqual(draft.liveResult,result);assert.deepEqual(draft.savedResult,result);
+});
 test('a Lens Review attempt reopens its own submitted draft, not the latest one',async()=>{
   const { draftForAttempt, attemptAsDraft } = await import('../app/bundles/course/codelens/review-flow.js');
   const comment = id => ({ id, start: 1, end: 2, dimension: 'Efficiency', claim: 'c', reasoning: 'r', fix: 'f' });

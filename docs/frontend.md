@@ -48,11 +48,12 @@ outside this prototype's scope.
 
 ## Training criteria and sample bank
 
-Eight curated samples cover Correctness, Appropriateness, Efficiency, and
-Maintainability across the cinema and shopping scenarios. Two samples have no
+Sixteen curated samples cover Correctness, Appropriateness, Efficiency, and
+Maintainability across the cinema and shopping scenarios. Appropriateness and
+Maintainability have three samples with issues per scenario. Two samples have no
 issues. Variants share their scenario titles so the title does not reveal the
-answer. The selected focus filters out samples with issues outside those areas;
-some topic/focus combinations currently have only an issue-free example.
+answer. The selected focus filters out samples with issues outside those areas. A lens
+with no issue to find in the chosen topic is unavailable on the lens screen.
 Random includes all four lenses, so annotations may use any of them. Which
 lenses have planted issues is shown only after submission.
 

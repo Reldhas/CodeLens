@@ -26,7 +26,7 @@ Google Fonts is optional; system fonts work if offline.
 
 ## Demo walkthrough
 
-1. Choose Start Lens Review on the Practice page. Choose one or more lenses, or tick Random to include all four, then start. The exercise is chosen automatically from matching samples. Drafts with saved work can be resumed under Continue where you left off.
+1. Choose Start Lens Review on the Practice page. Choose one or more lenses, or tick Random to include all four. A topic can be chosen too, and the default is Any topic. The exercise is chosen automatically from matching samples. Drafts with saved work can be resumed under Continue where you left off.
 2. Click line 6 and drag to line 9 to select the nested lookup. The annotation form opens beside the code.
 3. Under 1, choose Efficiency. Under 2, What's wrong, and why?, write: "The nested loop scans every booked seat, so each request checks the whole list, which takes O(r*b) time."
 4. Under 3, Proposed fix, suggest building a set of booked seats before the loop. Save the annotation.

@@ -16,9 +16,11 @@
 .practice-score>div:first-child{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--ink-soft)}
 .practice-score strong{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink)}
 .practice-score strong.low{color:var(--amber-strong)}
-.practice-start{display:flex;flex-direction:column;gap:8px}
-.practice-setting{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;font-size:13px;color:var(--ink-faint)}
-.practice-setting .text-link{font-size:13px}
+.practice-start{display:flex;flex-direction:column;gap:10px;margin-top:auto}
+.practice-setting{margin:0;font-size:13px;color:var(--ink-soft)}
+.practice-picks{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:8px}
+.practice-picks .field{gap:4px;font-size:13px;font-weight:500;color:var(--ink-soft)}
+.practice-picks .field select{min-height:38px;padding:7px 10px;font-size:13.5px;color:var(--ink);cursor:pointer}
 .preparing-note{padding:12px;border-radius:var(--r-ctl);background:var(--ground);text-align:center;font-size:13.5px}
 .results-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
 .results-head .text-link{font-size:13.5px}

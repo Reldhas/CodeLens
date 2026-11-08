@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import AnswerFeedback from '../../AnswerFeedback';
 import { SlimBar } from '../../bars';
-import DifficultySetup, { type Difficulty } from '../../DifficultySetup';
+import GeneratingScreen, { type Difficulty } from '../../GeneratingScreen';
 import type { ScreenProps } from '../../features';
 import { approvedItems, eligibleForTopic, pickItems, readCourse, topicName } from '../../course.js';
 import { SparkIcon, TerminalIcon } from '../../icons';
@@ -14,7 +14,6 @@ import { runProgram } from './run-python.js';
 import { TraceInput, TraceResult } from './TraceTable';
 import './dry-run.css';
 export const help = { title: 'How Dry Run works', steps: ['Read the code and trace it by hand.', 'Type exactly what you think it prints. A trace table is optional.', 'Submit. Your answer locks and the code really runs.', 'Compare your answer with the real output and read the feedback.'] };
-const levels = { easy: 'Short code, one loop or condition, few iterations.', medium: 'More branches or iterations, values that change less obviously.', hard: 'Nested loops or several functions, with traps like off-by-one.' };
 export default function DryRunScreen({ params, go }: ScreenProps) {
   const [attemptId, setAttemptId] = useState<string | null>(params.attemptId || null);
   const [again, setAgain] = useState<Difficulty | undefined>();
@@ -26,7 +25,7 @@ export default function DryRunScreen({ params, go }: ScreenProps) {
     setAttemptId(createAttempt({ function: 'dry-run', title: question.title, difficulty, topicId: question.topicId, exerciseIds: [question.id], fromSuggestion: !!params.fromSuggestion }).id);
   }
   if (error) return <><SlimBar title="Dry Run" onExit={() => go('home')} leave={null}/><section className="sheet center-sheet"><p>{error}</p><button className="btn btn-outline" onClick={() => go('home')}>Back to Practice</button></section></>;
-  if (!attemptId) return <DifficultySetup title="Dry Run" what="a problem" levels={levels} help={help} autoStart={again || params.difficulty} onStart={start} onBack={() => go('home')}/>;
+  if (!attemptId) { const difficulty: Difficulty = again || params.difficulty || 'easy'; return <GeneratingScreen title="Dry Run" what="a problem" difficulty={difficulty} help={help} onDone={() => start(difficulty)} onBack={() => go('home')}/>; }
   return <Exercise key={attemptId} attemptId={attemptId} onHome={() => go('home')} onNext={() => { setAgain(getAttempt(attemptId).difficulty); setAttemptId(null); }}/>;
 }
 function Exercise({ attemptId, onHome, onNext }: { attemptId: string; onHome: () => void; onNext: () => void }) {

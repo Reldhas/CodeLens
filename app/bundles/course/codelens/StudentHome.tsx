@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown, Trash2 } from 'lucide-react';
 import { features, type ScreenProps } from './features';
-import { functionNames, isUnlocked, label, readCourse, topicName } from './course.js';
+import { approvedItems, availableTopics, difficulties, functionNames, isUnlocked, label, readCourse, topicName } from './course.js';
 import { Brackets, ConceptIcon, DryRunIcon, LensIcon, ResumeIcon } from './icons';
 import { exercises, normalizeComment } from './model.js';
 import { lastDifficulty, lensReviewData, listAttempts, setDraftArchived } from './practice-log.js';
@@ -10,7 +10,7 @@ import { practiseParams } from './features/skill-map/skills.js';
 import { pct, ScoreBar, scorePoints } from './ui';
 import './home.css';
 
-type Card = { id: string; name: string; Icon: typeof DryRunIcon; skill: string; trains: string; score: number | null; setting: string; start: () => void; change?: () => void };
+type Card = { id: string; name: string; Icon: typeof DryRunIcon; skill: string; trains: string; score: number | null; setting?: string; picker?: { difficulty: string; topicId: string; options: string[] }; start: () => void };
 
 function FocusStat({ label, name, stat }: { label: string; name: string; stat: any }) {
   return <div className="focus-stat"><span className="muted-text">{label}</span>
@@ -24,6 +24,9 @@ export default function StudentHome({ go, has }: ScreenProps) {
   const [deleted, setDeleted] = useState<{ kind: string; id: string } | null>(null);
   const [draftError, setDraftError] = useState('');
   const [expanded, setExpanded] = useState('');
+  // What the student set on the cards. The level starts from last time and the topic from Any topic.
+  const [picks, setPicks] = useState<Record<string, { difficulty?: string; topicId?: string }>>({});
+  const setPick = (id: string, change: { difficulty?: string; topicId?: string }) => setPicks(p => ({ ...p, [id]: { ...p[id], ...change } }));
   function removeDraft(kind: string, id: string) {
     if (!setDraftArchived(kind, id, true)) { setDraftError('This draft could not be deleted. Please try again.'); return; }
     setDeleted({ kind, id }); setDraftError(''); refresh(n => n + 1);
@@ -38,18 +41,18 @@ export default function StudentHome({ go, has }: ScreenProps) {
   const weakTopic = weakLens?.topics[0];
   const focus = map.weakest ? practiseParams(map.weakest, weakTopic?.topic, has) : null;
   const suggested = focus?.id ?? null;
-  const done = (fn: string) => listAttempts(fn).some((a: any) => a.status === 'submitted');
-  const startFn = (fn: string, fromSuggestion: boolean) => ({
-    start: () => go(fn, { difficulty: lastDifficulty(fn), fromSuggestion }),
-    change: () => go(fn, { fromSuggestion }),
-  });
   const cards: Card[] = [
-    ...features.filter(f => f.kind === 'practice' && f.card).map(f => ({
+    ...features.filter(f => f.kind === 'practice' && f.card).map(f => {
+      const difficulty = picks[f.id]?.difficulty || lastDifficulty(f.id);
+      const options = availableTopics(approvedItems(f.id, f.card!.items || [], course), difficulty, course.publishedTopics) as string[];
+      // A topic with nothing at the newly chosen level goes back to Any topic.
+      const topicId = options.includes(picks[f.id]?.topicId || '') ? picks[f.id]!.topicId! : '';
+      return {
       id: f.id, name: f.label, Icon: f.id === 'dry-run' ? DryRunIcon : ConceptIcon, skill: f.card!.skill, trains: `Trains ${f.card!.lens}`,
       score: map.byFunction[f.id]?.value ?? null,
-      setting: `${label(lastDifficulty(f.id))}${done(f.id) ? ', like last time.' : ' to start.'}${f.id === 'concept-match' ? ' Mixed topics.' : ''}`,
-      ...startFn(f.id, suggested === f.id),
-    })),
+      picker: { difficulty, topicId, options },
+      start: () => go(f.id, { difficulty, ...(topicId ? { topicId } : {}), fromSuggestion: suggested === f.id }),
+    }; }),
     { id: 'lens-review', name: 'Lens Review', Icon: LensIcon, skill: 'Judge AI-generated code without being told what to look for.', trains: 'Trains any lens you pick',
       score: map.byFunction['lens-review']?.value ?? null,
       setting: 'You choose your lenses next.',
@@ -58,7 +61,7 @@ export default function StudentHome({ go, has }: ScreenProps) {
 
   // One row per kind of practice, the newest, so this list can't keep growing.
   const unfinished = [
-    ...['dry-run', 'concept-match'].map(fn => listAttempts().filter((a: any) => a.status === 'in_progress' && a.function === fn).at(-1)).filter(Boolean).map((a: any) => ({ id: a.id, kind: 'practice', name: (functionNames as any)[a.function], detail: `${label(a.difficulty)}, ${a.function === 'concept-match' ? 'mixed topics' : topicName(a.topicId).toLowerCase()}`, info: a.title || 'Practice in progress', criteria: `Started ${new Date(a.createdAt).toLocaleDateString()}`, notes: [] as string[], open: () => go(a.function, { attemptId: a.id }) })),
+    ...['dry-run', 'concept-match'].map(fn => listAttempts().filter((a: any) => a.status === 'in_progress' && a.function === fn).at(-1)).filter(Boolean).map((a: any) => ({ id: a.id, kind: 'practice', name: (functionNames as any)[a.function], detail: `${label(a.difficulty)}, ${topicName(a.topicId).toLowerCase()}`, info: a.title || 'Practice in progress', criteria: `Started ${new Date(a.createdAt).toLocaleDateString()}`, notes: [] as string[], open: () => go(a.function, { attemptId: a.id }) })),
     ...Object.entries(lensReviewData().drafts as Record<string, any>).filter(([, d]) => !d.submitted && !d.archived && (d.comments.length || d.noIssues)).slice(-1).map(([id, d]) => {
       const exercise = exercises.find(e => e.id === (d.exerciseId || id));
       return { id, kind: 'lens', name: 'Lens Review', detail: `${exercise?.title || 'Review'}, ${d.noIssues ? 'no issues found' : `${d.comments.length} ${d.comments.length === 1 ? 'annotation' : 'annotations'}`}`, info: exercise?.brief || 'Review in progress', criteria: d.randomFocus ? 'Random lenses, revealed after you submit.' : `Lenses: ${(d.focus || []).join(', ')}.`,
@@ -89,8 +92,11 @@ export default function StudentHome({ go, has }: ScreenProps) {
           <ScoreBar value={c.score} delay={0.15 + 0.1 * i}/>
         </div>
         {open ? <div className="practice-start">
+          {c.picker ? <div className="practice-picks">
+            <label className="field">Level<select value={c.picker.difficulty} onChange={e => setPick(c.id, { difficulty: e.target.value })}>{(difficulties as string[]).map(d => <option key={d} value={d}>{label(d)}</option>)}</select></label>
+            <label className="field">Topic<select value={c.picker.topicId} onChange={e => setPick(c.id, { topicId: e.target.value })}><option value="">Any topic</option>{c.picker.options.map(id => <option key={id} value={id}>{topicName(id)}</option>)}</select></label>
+          </div> : <p className="practice-setting">{c.setting}</p>}
           <button className="btn btn-primary btn-block" onClick={c.start}>Start {c.name}</button>
-          <div className="practice-setting">{c.setting}{c.change && <button className="text-link" onClick={c.change}>Change</button>}</div>
         </div> : <p className="preparing-note">Your TA is preparing this.</p>}
       </article>;
     })}</div>

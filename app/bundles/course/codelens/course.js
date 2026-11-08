@@ -35,6 +35,10 @@ export function approvedItems(fn, items, course = readCourse()) {
 export function eligibleItems(items, difficulty, published) {
   return items.filter(item => item.difficulty === difficulty && published.includes(item.topicId));
 }
+// The published topics that have something to practise at this level.
+export function availableTopics(items, difficulty, published) {
+  return published.filter(id => items.some(item => item.difficulty === difficulty && item.topicId === id));
+}
 // A Practise button asks for one topic. If it has nothing right now, use the other published topics.
 export function eligibleForTopic(items, difficulty, published, topicId) {
   const inTopic = topicId ? eligibleItems(items, difficulty, published.filter(id => id === topicId)) : [];

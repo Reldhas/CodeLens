@@ -10,3 +10,17 @@ test('a function needs the required number of approved examples',()=>{
   assert.equal(isUnlocked('dry-run',{...defaultCourse(),approved:{'dry-run':2}}),false);
   assert.ok(isUnlocked('dry-run',{...defaultCourse(),examplesRequired:2,approved:{'dry-run':2}}));
 });
+
+test('only topics with something at this level can be chosen',async()=>{
+  const { availableTopics } = await import('../app/bundles/course/codelens/course.js');
+  const items=[{difficulty:'easy',topicId:'loops'},{difficulty:'hard',topicId:'lists-strings'}];
+  assert.deepEqual(availableTopics(items,'easy',['loops','lists-strings']),['loops']);
+  assert.deepEqual(availableTopics(items,'hard',['loops']),[]);
+});
+test('Lens Review offers only topics that have an exercise for the chosen lenses',async()=>{
+  const { topicsFor } = await import('../app/bundles/course/codelens/review-flow.js');
+  const bank=[{topic:'A',findings:[{dimension:'Efficiency'}]},{topic:'B',findings:[{dimension:'Correctness'}]}];
+  assert.deepEqual(topicsFor([],false,bank),['A','B']);
+  assert.deepEqual(topicsFor(['Efficiency'],false,bank),['A']);
+  assert.deepEqual(topicsFor(['Efficiency'],true,bank),['A','B']);
+});

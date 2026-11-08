@@ -152,3 +152,4 @@
 .random-check svg{flex-shrink:0}
 :root[data-theme="dark"] .random-check input{accent-color:var(--action)}
 .option-card:has(input:disabled)>.vf-c{opacity:0}
+.setup-topic{max-width:320px;font-size:14px}

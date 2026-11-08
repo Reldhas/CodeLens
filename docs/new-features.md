@@ -19,7 +19,7 @@ execution is disabled.
 
 **Dry Run (Correctness)**
 
-1. Choose a difficulty. The topic is picked at random.
+1. Choose a level and, if you want, a topic on the Practice card. The default is Any topic.
 2. Read the code and type the predicted output. A trace table is optional.
 3. Submit. The answer locks and the code really runs in `python.worker.js`.
 4. See the real output, where the trace went wrong, an explanation and a tip,
@@ -30,7 +30,7 @@ downloaded at that point. There are 18 sample questions.
 
 **Concept Match (Appropriateness)**
 
-1. Choose a difficulty and get a set of 5 stories.
+1. Choose a level and, if you want, a topic on the Practice card, and get a set of up to 5 stories.
 2. Pick one of 4 concepts and give a one-line reason (required).
 3. Check the answer. It locks, and the feedback explains the options and
    comments on the reason. Rate it.
@@ -76,7 +76,7 @@ rest of the project.
 | --- | --- |
 | `Shell.tsx` | Header, navigation and help window; opens `App.tsx` for Lens Review |
 | `StudentHome.tsx` | The practice menu |
-| `DifficultySetup.tsx` | Choosing a difficulty |
+| `GeneratingScreen.tsx` | The short wait after Start |
 | `CodeBlock.tsx` | Read-only code with line numbers |
 | `course.js` | Topics, difficulties, picking exercises |
 | `practice-log.js` | Saved attempts |

@@ -22,6 +22,12 @@ export function choosePractice(topic, focus, randomFocus, rng = Math.random, ban
   return { exerciseId: exercise.id, topic: exercise.topic, focus: chosenFocus, randomFocus };
 }
 
+// The topics a student can pick for these lenses. Before any lens is chosen, every topic.
+export function topicsFor(focus, randomFocus, bank = studentExercises()) {
+  const matching = randomFocus || !focus.length ? bank : eligibleExercises('Random', focus, bank);
+  return [...new Set(matching.map(exercise => exercise.topic))];
+}
+
 export function submissionError(draft, hasOpenAnnotation = false) {
   if (draft.submitted) return 'This review has already been submitted.';
   if (hasOpenAnnotation) return 'Save or cancel your open annotation before submitting.';

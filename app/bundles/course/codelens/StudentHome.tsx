@@ -13,6 +13,13 @@ import './home.css';
 
 type Card = { id: string; name: string; Icon: typeof DryRunIcon; skill: string; trains: string; score: number | null; setting: string; start: () => void; change?: () => void };
 
+function FocusStat({ label, name, stat }: { label: string; name: string; stat: any }) {
+  return <div className="focus-stat"><span className="muted-text">{label}</span>
+    <div className="skill-row-head"><span>{name}</span><span className="skill-score"><span className={'skill-value' + (stat.value < 0.5 ? ' low' : '')}>{pct(stat.value)}</span><span className="muted-text">({scorePoints(stat)})</span></span></div>
+    <ScoreBar value={stat.value}/>
+  </div>;
+}
+
 export default function StudentHome({ go, has }: ScreenProps) {
   const [, refresh] = useState(0);
   const [deleted, setDeleted] = useState<{ kind: string; id: string } | null>(null);
@@ -63,9 +70,13 @@ export default function StudentHome({ go, has }: ScreenProps) {
 
   return <>
     <h1 className="page-title">Practice</h1>
-    {focus && <section className="focus-line" aria-label="Recommended for you">
-      <p><strong>Recommended for you.</strong> {map.weakest} is your weakest lens, {pct(weakLens.value)} ({scorePoints(weakLens)}).{weakTopic && <> Start with {weakTopic.topic}, {pct(weakTopic.value)} ({scorePoints(weakTopic)}).</>}</p>
-      <div className="focus-actions">{has('skill-map') && <button className="text-link" onClick={() => go('skill-map')}>See Skill map</button>}{isUnlocked(focus.id, course) && <button className="btn btn-primary btn-sm" onClick={() => go(focus.id, focus.params)}>Practise {weakTopic?.topic || map.weakest}</button>}</div>
+    {focus && <section className="focus-card" aria-labelledby="focus-title">
+      <div className="focus-head"><h2 id="focus-title" className="section-title-lg">Recommended for you</h2>{has('skill-map') && <button className="text-link" onClick={() => go('skill-map')}>See Skill map</button>}</div>
+      <div className="focus-body">
+        <FocusStat label="Your weakest lens" name={map.weakest} stat={weakLens}/>
+        {weakTopic && <FocusStat label="Start with this topic" name={weakTopic.topic} stat={weakTopic}/>}
+        {isUnlocked(focus.id, course) && <button className="btn btn-primary" onClick={() => go(focus.id, focus.params)}>Practise {weakTopic?.topic || map.weakest}</button>}
+      </div>
     </section>}
     <div className="practice-grid">{cards.map((c, i) => {
       const isSuggested = suggested === c.id;

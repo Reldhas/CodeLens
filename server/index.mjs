@@ -22,6 +22,12 @@ export function createApp({ env = process.env, fetchImpl = fetch, now = Date.now
   const hash = s => createHash('sha256').update(s).digest();
   async function body(req) {
     if (!/^application\/json(?:;|$)/i.test(req.headers['content-type'] || '')) throw { status: 415, message: 'Send JSON.' };
+    // Vercel may have already parsed the incoming request body.
+    if (req.body !== undefined) {
+      const raw = Buffer.isBuffer(req.body) ? req.body.toString() : typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+      if (Buffer.byteLength(raw) > 32768) throw { status: 413, message: 'Review is too large (32 KB maximum).' };
+      try { return JSON.parse(raw); } catch { throw { status: 400, message: 'Invalid JSON.' }; }
+    }
     let bytes = 0, chunks = [];
     for await (const chunk of req) { bytes += chunk.length; if (bytes > 32768) throw { status: 413, message: 'Review is too large (32 KB maximum).' }; chunks.push(chunk); }
     try { return JSON.parse(Buffer.concat(chunks).toString()); } catch { throw { status: 400, message: 'Invalid JSON.' }; }

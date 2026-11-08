@@ -4,13 +4,14 @@ import { features, type ScreenProps } from './features';
 import { approvedItems, availableTopics, difficulties, functionNames, isUnlocked, label, readCourse, topicName } from './course.js';
 import { Brackets, ConceptIcon, DryRunIcon, LensIcon, ResumeIcon } from './icons';
 import { exercises, normalizeComment } from './model.js';
+import { reviewTopics } from './review-flow.js';
 import { lastDifficulty, lensReviewData, listAttempts, setDraftArchived } from './practice-log.js';
 import { loadSkillMap, ResultsList } from './features/skill-map/SkillMap';
 import { practiseParams } from './features/skill-map/skills.js';
 import { pct, ScoreBar, scorePoints } from './ui';
 import './home.css';
 
-type Card = { id: string; name: string; Icon: typeof DryRunIcon; skill: string; trains: string; score: number | null; setting?: string; picker?: { difficulty: string; topicId: string; options: string[] }; start: () => void };
+type Card = { id: string; name: string; Icon: typeof DryRunIcon; skill: string; trains: string; score: number | null; picker: { difficulty?: string; topicId: string; options: { id: string; name: string }[] }; start: () => void };
 
 function FocusStat({ label, name, stat }: { label: string; name: string; stat: any }) {
   return <div className="focus-stat"><span className="muted-text">{label}</span>
@@ -24,7 +25,7 @@ export default function StudentHome({ go, has }: ScreenProps) {
   const [deleted, setDeleted] = useState<{ kind: string; id: string } | null>(null);
   const [draftError, setDraftError] = useState('');
   const [expanded, setExpanded] = useState('');
-  // What the student set on the cards. The level starts from last time and the topic from Any topic.
+  // What the student set on the cards. The level starts from last time and the topic from Any topic. Lens Review has no levels.
   const [picks, setPicks] = useState<Record<string, { difficulty?: string; topicId?: string }>>({});
   const setPick = (id: string, change: { difficulty?: string; topicId?: string }) => setPicks(p => ({ ...p, [id]: { ...p[id], ...change } }));
   function removeDraft(kind: string, id: string) {
@@ -41,22 +42,23 @@ export default function StudentHome({ go, has }: ScreenProps) {
   const weakTopic = weakLens?.topics[0];
   const focus = map.weakest ? practiseParams(map.weakest, weakTopic?.topic, has) : null;
   const suggested = focus?.id ?? null;
+  const lensTopic = picks['lens-review']?.topicId || '';
   const cards: Card[] = [
     ...features.filter(f => f.kind === 'practice' && f.card).map(f => {
       const difficulty = picks[f.id]?.difficulty || lastDifficulty(f.id);
-      const options = availableTopics(approvedItems(f.id, f.card!.items || [], course), difficulty, course.publishedTopics) as string[];
+      const topics = availableTopics(approvedItems(f.id, f.card!.items || [], course), difficulty, course.publishedTopics) as string[];
       // A topic with nothing at the newly chosen level goes back to Any topic.
-      const topicId = options.includes(picks[f.id]?.topicId || '') ? picks[f.id]!.topicId! : '';
+      const topicId = topics.includes(picks[f.id]?.topicId || '') ? picks[f.id]!.topicId! : '';
       return {
       id: f.id, name: f.label, Icon: f.id === 'dry-run' ? DryRunIcon : ConceptIcon, skill: f.card!.skill, trains: `Trains ${f.card!.lens}`,
       score: map.byFunction[f.id]?.value ?? null,
-      picker: { difficulty, topicId, options },
+      picker: { difficulty, topicId, options: topics.map(id => ({ id, name: topicName(id) })) },
       start: () => go(f.id, { difficulty, ...(topicId ? { topicId } : {}), fromSuggestion: suggested === f.id }),
     }; }),
     { id: 'lens-review', name: 'Lens Review', Icon: LensIcon, skill: 'Judge AI-generated code without being told what to look for.', trains: 'Trains any lens you pick',
       score: map.byFunction['lens-review']?.value ?? null,
-      setting: 'You choose your lenses next.',
-      start: () => go('lens-review', { setup: true }) },
+      picker: { topicId: lensTopic, options: (reviewTopics() as string[]).map(t => ({ id: t, name: t })) },
+      start: () => go('lens-review', { setup: true, ...(lensTopic ? { topic: lensTopic } : {}) }) },
   ];
 
   // One row per kind of practice, the newest, so this list can't keep growing.
@@ -92,10 +94,10 @@ export default function StudentHome({ go, has }: ScreenProps) {
           <ScoreBar value={c.score} delay={0.15 + 0.1 * i}/>
         </div>
         {open ? <div className="practice-start">
-          {c.picker ? <div className="practice-picks">
-            <label className="field">Level<select value={c.picker.difficulty} onChange={e => setPick(c.id, { difficulty: e.target.value })}>{(difficulties as string[]).map(d => <option key={d} value={d}>{label(d)}</option>)}</select></label>
-            <label className="field">Topic<select value={c.picker.topicId} onChange={e => setPick(c.id, { topicId: e.target.value })}><option value="">Any topic</option>{c.picker.options.map(id => <option key={id} value={id}>{topicName(id)}</option>)}</select></label>
-          </div> : <p className="practice-setting">{c.setting}</p>}
+          <div className="practice-picks">
+            {c.picker.difficulty && <label className="field">Level<select value={c.picker.difficulty} onChange={e => setPick(c.id, { difficulty: e.target.value })}>{(difficulties as string[]).map(d => <option key={d} value={d}>{label(d)}</option>)}</select></label>}
+            <label className="field">Topic<select value={c.picker.topicId} onChange={e => setPick(c.id, { topicId: e.target.value })}><option value="">Any topic</option>{c.picker.options.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
+          </div>
           <button className="btn btn-primary btn-block" onClick={c.start}>Start {c.name}</button>
         </div> : <p className="preparing-note">Your TA is preparing this.</p>}
       </article>;

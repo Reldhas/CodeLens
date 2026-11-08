@@ -17,10 +17,17 @@ test('only topics with something at this level can be chosen',async()=>{
   assert.deepEqual(availableTopics(items,'easy',['loops','lists-strings']),['loops']);
   assert.deepEqual(availableTopics(items,'hard',['loops']),[]);
 });
-test('Lens Review offers only topics that have an exercise for the chosen lenses',async()=>{
-  const { topicsFor } = await import('../app/bundles/course/codelens/review-flow.js');
-  const bank=[{topic:'A',findings:[{dimension:'Efficiency'}]},{topic:'B',findings:[{dimension:'Correctness'}]}];
-  assert.deepEqual(topicsFor([],false,bank),['A','B']);
-  assert.deepEqual(topicsFor(['Efficiency'],false,bank),['A']);
-  assert.deepEqual(topicsFor(['Efficiency'],true,bank),['A','B']);
+test('Lens Review offers topics with an issue to find, and only the lenses that topic has',async()=>{
+  const { lensesWithIssues, reviewTopics } = await import('../app/bundles/course/codelens/review-flow.js');
+  const bank=[{topic:'A',findings:[{dimension:'Efficiency'}]},{topic:'A',findings:[]},{topic:'B',findings:[{dimension:'Correctness'}]},{topic:'C',findings:[]}];
+  assert.deepEqual(reviewTopics(bank),['A','B']);
+  assert.deepEqual(lensesWithIssues('A',bank),['Efficiency']);
+  assert.deepEqual(lensesWithIssues('C',bank),[]);
+  assert.deepEqual(lensesWithIssues('',bank),['Correctness','Efficiency']);
+});
+test('every lens offered for a topic can lead to a real issue in the sample exercises',async()=>{
+  const { lensesWithIssues, reviewTopics, eligibleExercises } = await import('../app/bundles/course/codelens/review-flow.js');
+  const { exercises } = await import('../app/bundles/course/codelens/model.js');
+  for(const topic of reviewTopics(exercises)) for(const lens of lensesWithIssues(topic,exercises))
+    assert.ok(eligibleExercises(topic,[lens],exercises).some(e=>e.findings.length),topic+' / '+lens);
 });

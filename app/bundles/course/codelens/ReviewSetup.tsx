@@ -2,15 +2,16 @@ import { useState } from 'react';
 import { ArrowRight, Shuffle } from 'lucide-react';
 import { dimensions } from './model.js';
 import { choosePractice } from './review-flow.js';
+import { isPresentation, presentationPractice } from './presentation.js';
 export type PracticeConfig = { exerciseId: string; topic: string; focus: string[]; randomFocus: boolean };
 export default function ReviewSetup({ onStart }: { onStart: (config: PracticeConfig) => void }) {
-  const [focus, setFocus] = useState<string[]>(['Efficiency']);
+  const [focus, setFocus] = useState<string[]>(()=>[isPresentation()?'Maintainability':'Efficiency']);
   const [randomFocus, setRandomFocus] = useState(false);
   const [error, setError] = useState('');
   function start(e: React.FormEvent) {
     e.preventDefault();
     if (!randomFocus && !focus.length) { setError('Choose at least one criterion, or Random criteria.'); return; }
-    try { onStart(choosePractice('Random', focus, randomFocus)); } catch (err) { setError((err as Error).message); }
+    try { onStart(isPresentation()?presentationPractice(focus, randomFocus):choosePractice('Random', focus, randomFocus)); } catch (err) { setError((err as Error).message); }
   }
   return <section className="review-setup">
     <h1>What do you want to practise?</h1>

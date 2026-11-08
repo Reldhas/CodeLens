@@ -52,6 +52,7 @@ export function makeReview({ attemptId, action, summary, originalSummary, score,
   return { id: crypto.randomUUID(), attemptId, action: action === 'skip' ? 'skipped' : editedSummary || adjustedScore != null ? 'edited' : 'approved', editedSummary, adjustedScore, setsSummary, setsScore, comment: action === 'send' && comment?.trim() ? comment.trim() : null, sentAt: action === 'send' ? now : null, createdAt: now };
 }
 export function aiSummary(exercise, result, noIssues) {
+  if (result.source === 'ai' && typeof result.summary === 'string' && result.summary.trim()) return result.summary;
   if (!exercise.findings.length) return noIssues ? 'Correct conclusion: this code has no issues.' : 'This code has no issues, so the comments were not needed.';
   return `${result.found} of ${exercise.findings.length} issues identified.`;
 }

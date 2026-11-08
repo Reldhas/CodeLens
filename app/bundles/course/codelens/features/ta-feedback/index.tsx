@@ -14,7 +14,13 @@ function Notices({ go }: ScreenProps) {
     const sent = taFeedbackFor(reviews.filter((r: any) => r.attemptId === s.id)).sent.length;
     return sent > 0 && !seen.includes(s.id + ':' + sent);
   });
-  return <>{fresh.map(s=><section className="ta-notice" key={s.id}><p><strong>New TA feedback</strong> on your Lens Review of {titleOf(s.exercise)}.</p><button className="primary" onClick={()=>go('ta-feedback',{attemptId:s.id})}>View feedback<ArrowRight size={16}/></button></section>)}</>;
+  function openFeedback(id: string) {
+    const ta = readTa();
+    const stamp = id + ':' + taFeedbackFor(reviews.filter((r: any)=>r.attemptId===id)).sent.length;
+    if (!ta.seen.includes(stamp)) writeTa({...ta,seen:[...ta.seen,stamp]});
+    go('lens-review',{attemptId:id});
+  }
+  return <>{fresh.map(s=><section className="ta-notice" key={s.id}><p><strong>New TA feedback</strong> on your Lens Review of {titleOf(s.exercise)}.</p><button className="primary" onClick={()=>openFeedback(s.id)}>View feedback<ArrowRight size={16}/></button></section>)}</>;
 }
 function TaFeedback({ params, go }: ScreenProps) {
   const submission = mine().find(s => s.id === params.attemptId);

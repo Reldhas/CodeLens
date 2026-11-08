@@ -57,8 +57,10 @@ function Review({ item, queue, go }: { item: any; queue: any[]; go: ScreenProps[
         </div>
       </section>
       <aside className="review-panel"><div className="feedback-content">
-        <div className="feedback-score-row"><div className="ai-heading"><h2><Sparkles size={18} aria-hidden="true"/>AI feedback draft</h2><span className="simulated-label">Simulated</span></div><div className="compact-score"><strong>{s.result.total.toFixed(1)}</strong><span>/ 10</span></div></div>
-        <p className="feedback-summary">{original} Confidence: {confidenceOf(exercise, s.comments)==='low'?'low':'high'}. Based on the answer key and the rubric.</p>
+        <div className="feedback-score-row"><div className="ai-heading"><h2><Sparkles size={18} aria-hidden="true"/>AI feedback draft</h2><span className="simulated-label">{s.result.source==='ai'?'Live AI':'Simulated'}</span></div><div className="compact-score"><strong>{s.result.total.toFixed(1)}</strong><span>/ 10</span></div></div>
+        <p className="feedback-summary">{original}</p>
+        {s.result.source==='ai'&&s.result.improvements?.length>0&&<section className="answer-section"><h3>Suggested improvements</h3><ul>{s.result.improvements.map((text:string,i:number)=><li key={i}>{text}</li>)}</ul></section>}
+        <p className="muted">Rule-based review flag: {confidenceOf(exercise,s.comments)==='low'?'check this submission carefully':'no ambiguity flagged'}. This is not model confidence.</p>
         <section className="answer-section"><h3>Answer key</h3>{exercise.findings.length?exercise.findings.map((f: any,i: number)=><div className="answer-finding" key={i}><span className="line-pill">{f.dimension} · L{f.start}{f.end!==f.start?'–'+f.end:''}</span><h4>{f.claim}</h4></div>):<p className="clean-answer">This code has no planted issues.</p>}</section>
         <section className="answer-section ta-actions"><div className="section-title"><h3>Your review</h3><label className="ta-check"><input type="checkbox" checked={watching} onChange={()=>save({...ta,watching:watching?ta.watching.filter((n: string)=>n!==s.student):[...ta.watching,s.student]})}/>Watch {s.student}</label></div>
           {item.reviews.map((r: any)=><p className="history-note" key={r.id}>{r.sentAt?`Sent ${when(r.sentAt)}`:`Skipped ${when(r.createdAt)}`}{r.adjustedScore!=null?` · score ${r.adjustedScore} / 10`:r.setsScore&&' · AI score restored'}{r.editedSummary?' · summary edited':r.setsSummary&&' · AI summary restored'}{r.comment&&` · “${r.comment}”`}</p>)}

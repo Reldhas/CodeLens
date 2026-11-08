@@ -15,9 +15,7 @@ export function lensMarks(exercise: any, comments: any[]) {
   for (const f of exercise.findings) for (let n = f.start; n <= f.end; n++) marks[n] = findingFound(f, comments) ? 'found' : marks[n] || 'missed';
   return marks;
 }
-// The found/missed marks come from the simulated keyword check, so a live AI result leaves the code unmarked.
-export function ResultCode({ exercise, comments, live = false }: { exercise: any; comments: any[]; live?: boolean }) {
-  if (live) return <CodeCard file={exercise.file} code={exercise.code.join('\n')} note={null}/>;
+export function ResultCode({ exercise, comments }: { exercise: any; comments: any[] }) {
   return <CodeCard file={exercise.file} code={exercise.code.join('\n')} marks={lensMarks(exercise, comments)}
     legend={exercise.findings.length ? <span className="legend"><span><i className="found"/>You found</span><span><i className="missed"/>You missed</span></span> : <span>No planted issues in this code</span>} note={null}/>;
 }
@@ -35,7 +33,8 @@ export default function LensResult({ exercise, comments, result, noIssues, justi
   ta?: ReactNode; taScore?: number | null; rating?: ReactNode; note?: string;
 }) {
   const live = result.source === 'ai';
-  const found = live ? result.found : exercise.findings.filter((f: any) => findingFound(f, comments)).length;
+  // Found and missed always come from the answer key, also when the score comes from live AI.
+  const found = exercise.findings.filter((f: any) => findingFound(f, comments)).length;
   const extra = live ? [] : comments.map(c => commentFeedback(exercise, c)).filter(f => f.result !== 'found');
   const clean = !exercise.findings.length;
   const summary = live ? result.summary : note || (clean
@@ -47,7 +46,7 @@ export default function LensResult({ exercise, comments, result, noIssues, justi
         <div className="big-score"><strong>{+result.total.toFixed(1)}</strong><span>/ 10</span>{taScore != null && <small>AI</small>}</div>
         {taScore != null && <div className="big-score ta"><strong>{+taScore.toFixed(1)}</strong><span>/ 10</span><small>Your TA</small></div>}
       </div>
-      <div className="score-sub"><strong>{clean ? (noIssues ? 'Right conclusion' : 'No issues to find') : `Found ${found} of ${exercise.findings.length} ${exercise.findings.length === 1 ? 'issue' : 'issues'}`}</strong><span>Lens tested: {focus.join(', ')}</span></div>
+      <div className="score-sub"><strong>{clean ? (noIssues ? 'Right conclusion' : 'No issues to find') : `Found ${found} of ${exercise.findings.length} ${exercise.findings.length === 1 ? 'issue' : 'issues'}`}</strong><span>Lenses practised: {focus.join(', ')}</span><span>Topic: {exercise.topic}</span></div>
     </div>
     {ta}
     <section aria-labelledby="ai-title" className="feedback-block">
@@ -55,12 +54,7 @@ export default function LensResult({ exercise, comments, result, noIssues, justi
       <p>{summary}</p>
       {noIssues && <article className={'note-box ' + (clean ? 'good' : 'warn')}><div className="note-head"><span className={'chip ' + (clean ? 'good' : 'warn')}>{clean ? <CheckIcon/> : <X size={14} strokeWidth={2.6}/>}No issues found</span></div><p>{justification}</p></article>}
       {live && result.improvements.length > 0 && <div className="ai-steps"><h3 className="small-title">To strengthen your review</h3><ol>{result.improvements.map((s: string, i: number) => <li key={i}>{s}</li>)}</ol></div>}
-      {live && exercise.findings.length > 0 && <h3 className="small-title">Planted issues</h3>}
-      {live && exercise.findings.map((f: any, i: number) => <article key={i} className="note-box plain">
-        <div className="note-head"><span className="lines">{lines(f)}</span><span className="lens-tag">{f.dimension}</span></div>
-        <p><strong>{f.claim}</strong></p><p>{f.reasoning}</p><p className="fix-line"><strong>Fix</strong><span>{f.fix}</span></p>
-      </article>)}
-      {!live && exercise.findings.map((f: any, i: number) => {
+      {exercise.findings.map((f: any, i: number) => {
         const hit = findingFound(f, comments);
         return <article key={i} className={'note-box ' + (hit ? 'good' : 'warn')}>
           <div className="note-head"><span className={'chip ' + (hit ? 'good' : 'warn')}>{hit ? <CheckIcon/> : <X size={14} strokeWidth={2.6}/>}{hit ? 'You found this' : 'You missed this'}</span><span className="lines">{lines(f)}</span><span className="lens-tag">{f.dimension}</span></div>
@@ -69,13 +63,14 @@ export default function LensResult({ exercise, comments, result, noIssues, justi
         </article>;
       })}
       {extra.map(f => <article key={f.id} className="note-box plain">
-        <div className="note-head"><span className="chip">{({ 'wrong-lens': 'Other lens', unclear: 'Issue not named', 'not-an-issue': 'Not an issue' } as Record<string, string>)[f.result]}</span><span className="lines">{f.label}</span></div>
+        <div className="note-head"><span className="chip">{({ 'wrong-lens': 'Wrong lens', unclear: 'Issue not named', 'not-an-issue': 'Not an issue' } as Record<string, string>)[f.result]}</span><span className="lines">{f.label}</span></div>
         {f.points.map(p => <p key={p}>{p}</p>)}
       </article>)}
     </section>
+    {!ta && <section className="note-box plain" aria-label="TA review"><div className="note-head"><strong>TA review</strong><span className="chip">Not available yet</span></div><p>A teaching assistant will check this review and add feedback here.</p></section>}
     {Object.keys(result.rubric).length > 0 && <details className="more-details"><summary>How this was scored{live ? '' : ' (simulated)'}</summary>
       {Object.entries(result.rubric).map(([key, value]: [string, any]) => <p key={key} className="row-between"><span style={{ textTransform: 'capitalize' }}>{key}</span><strong>{value.toFixed(1)} / 2.5</strong></p>)}
-      <p className="muted-text">{live ? 'AI feedback can be imperfect. Check it against the planted issues.' : 'Demo scoring uses keywords and line ranges, not live AI.'}</p>
+      <p className="muted-text">{live ? 'The score comes from live AI, which can be imperfect. Found and missed come from the answer key.' : 'Demo scoring uses keywords and line ranges, not live AI.'}</p>
     </details>}
     {rating}
   </>;

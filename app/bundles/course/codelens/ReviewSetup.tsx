@@ -4,15 +4,17 @@ import { dimensions } from './model.js';
 import { choosePractice } from './review-flow.js';
 export type PracticeConfig = { exerciseId: string; topic: string; focus: string[]; randomFocus: boolean };
 const hints: Record<string, string> = { Correctness: 'Bugs and edge cases', Appropriateness: 'The right approach', Efficiency: 'Time and memory', Maintainability: 'Readable, adaptable code' };
-// Shown when a student chooses Change on the Lens Review card.
-export default function ReviewSetup({ onStart }: { onStart: (config: PracticeConfig) => void }) {
-  const [focus, setFocus] = useState<string[]>([]);
+// Every Lens Review starts here, so choosing the lenses is always a deliberate step.
+// initialFocus and topic come from a Practise button on the weakest lens and topic.
+export default function ReviewSetup({ onStart, initialFocus = [], topic }: { onStart: (config: PracticeConfig) => void; initialFocus?: string[]; topic?: string }) {
+  const [focus, setFocus] = useState<string[]>(initialFocus);
   const [randomFocus, setRandomFocus] = useState(false);
   const [error, setError] = useState('');
   function start(e: React.FormEvent) {
     e.preventDefault();
     if (!randomFocus && !focus.length) { setError('Choose at least one lens, or Random.'); return; }
-    try { onStart(choosePractice('Random', focus, randomFocus)); } catch (err) { setError((err as Error).message); }
+    const pick = () => { if (topic) { try { return choosePractice(topic, focus, randomFocus); } catch { /* No exercise for this topic and these lenses: use any topic. */ } } return choosePractice('Random', focus, randomFocus); };
+    try { onStart(pick()); } catch (err) { setError((err as Error).message); }
   }
   return <section className="sheet center-sheet">
     <form className="setup-form" onSubmit={start}>

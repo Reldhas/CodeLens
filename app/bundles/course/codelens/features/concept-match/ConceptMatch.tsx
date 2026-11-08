@@ -23,7 +23,7 @@ export default function ConceptMatchScreen({ params, go }: ScreenProps) {
   const [error, setError] = useState('');
   function start(difficulty: Difficulty) {
     const done = listAttempts('concept-match').flatMap((a: any) => a.exerciseIds);
-    const picked = pickItems(eligibleItems(approvedItems('concept-match', library), difficulty, readCourse().publishedTopics), setSize, done);
+    const picked = pickItems(eligibleItems(approvedItems('concept-match', library), difficulty, readCourse().publishedTopics.filter((id: string) => !params.topicId || id === params.topicId)), setSize, done);
     if (!picked.length) { setError('Your TA is preparing this: nothing is approved and published at this difficulty yet.'); return; }
     setAttemptId(createAttempt({ function: 'concept-match', title: `Set of ${picked.length} questions`, difficulty, topicId: null, exerciseIds: picked.map((q: any) => q.id), answers: { choices: {}, reasons: {}, checked: [] }, fromSuggestion: !!params.fromSuggestion }).id);
   }

@@ -44,7 +44,7 @@ function ReviewResult({ params, go }: ScreenProps) {
     <SlimBar title={exercise.title} meta={`Lens Review, ${exercise.topic.replace(' & ', ' and ').toLowerCase()}, ${reviewed ? 'reviewed by your TA' : 'submitted'}`} onExit={() => go('home')} help={help} leave={null}
       aside={<ResultChip value={shown / 10}>{scoreText(shown)}</ResultChip>}/>
     <WorkArea>
-      <section className="sheet work-main" aria-label="Exercise and code"><Brief exercise={exercise}/><ResultCode exercise={exercise} comments={submission.comments} live={submission.result?.source === 'ai'}/></section>
+      <section className="sheet work-main" aria-label="Exercise and code"><Brief exercise={exercise}/><ResultCode exercise={exercise} comments={submission.comments}/></section>
       <aside className="sheet work-side" aria-label="Your review">
         <div className="work-side-body">
           <LensResult exercise={exercise} comments={submission.comments} result={submission.result} noIssues={submission.noIssues} justification={submission.justification} focus={focus}

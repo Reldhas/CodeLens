@@ -21,7 +21,7 @@ export default function DryRunScreen({ params, go }: ScreenProps) {
   const [error, setError] = useState('');
   function start(difficulty: Difficulty) {
     const done = listAttempts('dry-run').flatMap((a: any) => a.exerciseIds);
-    const [question] = pickItems(eligibleItems(approvedItems('dry-run', questions), difficulty, readCourse().publishedTopics), 1, done);
+    const [question] = pickItems(eligibleItems(approvedItems('dry-run', questions), difficulty, readCourse().publishedTopics.filter((id: string) => !params.topicId || id === params.topicId)), 1, done);
     if (!question) { setError('Your TA is preparing this: nothing is approved and published at this difficulty yet.'); return; }
     setAttemptId(createAttempt({ function: 'dry-run', title: question.title, difficulty, topicId: question.topicId, exerciseIds: [question.id], fromSuggestion: !!params.fromSuggestion }).id);
   }

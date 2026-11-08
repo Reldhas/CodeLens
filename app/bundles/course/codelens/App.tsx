@@ -161,7 +161,7 @@ export default function App({ onHome, onHistoryBack, params = {} }: { onHome: ()
 
   if (showSetup) return <>
     <SlimBar title="Lens Review" meta="Choose your lenses" onExit={onHome} help={help} leave={null}/>
-    <ReviewSetup onStart={startReview}/>
+    <ReviewSetup onStart={startReview} initialFocus={params.focus} topic={params.topic}/>
   </>;
 
   if (busy) return <>
@@ -204,9 +204,9 @@ export default function App({ onHome, onHistoryBack, params = {} }: { onHome: ()
   const ta = feedbackForAttempt(params.attemptId || draft.attemptId || '', allReviews(), sampleHistory);
   const leaveResult = viewingHistory && onHistoryBack ? onHistoryBack : onHome;
   if (draft.submitted) return <>
-    <SlimBar title={exercise.title} meta={`Lens Review, ${exercise.topic.replace(' & ', ' and ').toLowerCase()}, submitted`} onExit={leaveResult} help={help} leave={null} aside={<ResultChip value={result.total / 10}>{scoreText(result.total)}</ResultChip>}/>
+    <SlimBar title={exercise.title} meta={`Lens Review, ${exercise.topic.replace(' & ', ' and ').toLowerCase()}, submitted`} onExit={leaveResult} exitLabel={viewingHistory ? 'Skill map' : undefined} help={help} leave={null} aside={<ResultChip value={result.total / 10}>{scoreText(result.total)}</ResultChip>}/>
     <WorkArea>
-      <section className="sheet work-main" aria-label="Exercise and code"><Brief exercise={exercise}/><ResultCode exercise={exercise} comments={draft.comments} live={!!draft.liveResult}/></section>
+      <section className="sheet work-main" aria-label="Exercise and code"><Brief exercise={exercise}/><ResultCode exercise={exercise} comments={draft.comments}/></section>
       <aside className="sheet work-side" aria-label="Your review">
         {tabs}
         <div className="work-side-body">
@@ -238,11 +238,11 @@ export default function App({ onHome, onHistoryBack, params = {} }: { onHome: ()
           {tab === 'annotations' ? <>
             {range.length > 0 && <form className="lr-form panel-in" onSubmit={saveComment}>
               <div className="row-between"><h2 className="panel-title">{editing ? 'Edit annotation' : 'New annotation'}</h2><span className="lines">{linesLabel(lo, hi)}</span></div>
-              <fieldset className="lens-pick"><legend>{multiLens ? 'Which lenses fail here? Choose one or more.' : 'Which lens fails here?'}</legend><div>
+              <fieldset className="lens-pick"><legend>{multiLens ? '1. Which lenses fail here? Choose one or more.' : '1. Which lens fails here?'}</legend><div>
                 {allowedFocus.map(d => { const on = form.lenses.includes(d); return <button type="button" key={d} className="chip-toggle" aria-pressed={on} onClick={() => { setError(''); setForm({ ...form, lenses: multiLens ? (on ? form.lenses.filter(l => l !== d) : [...form.lenses, d]) : [d] }); }}>{on && <CheckIcon/>}{d}</button>; })}
               </div></fieldset>
-              <label className="field">What’s wrong, and why?<textarea rows={4} placeholder="Describe the problem and why it matters." value={form.text} onChange={e => setForm({ ...form, text: e.target.value })}/></label>
-              <label className="field">Proposed fix<textarea rows={2} placeholder="How would you change the code?" value={form.fix} onChange={e => setForm({ ...form, fix: e.target.value })}/></label>
+              <label className="field">2. What’s wrong, and why?<textarea rows={4} placeholder="Describe the problem and why it matters." value={form.text} onChange={e => setForm({ ...form, text: e.target.value })}/></label>
+              <label className="field">3. Proposed fix<textarea rows={2} placeholder="How would you change the code?" value={form.fix} onChange={e => setForm({ ...form, fix: e.target.value })}/></label>
               {error && <p className="error-text" role="alert">{error}</p>}
               <div className="lr-form-actions"><button type="button" className="btn btn-outline btn-sm" onClick={clearEditor}>Cancel</button><button type="submit" className="btn btn-primary btn-sm">{editing ? 'Save changes' : 'Save annotation'}</button></div>
             </form>}

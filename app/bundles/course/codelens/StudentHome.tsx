@@ -6,20 +6,12 @@ import { functionNames, isUnlocked, label, readCourse, topicName } from './cours
 import { Brackets, ConceptIcon, DryRunIcon, LensIcon, ResumeIcon } from './icons';
 import { exercises } from './model.js';
 import { lastDifficulty, lensReviewData, listAttempts, setDraftArchived } from './practice-log.js';
-import { choosePractice } from './review-flow.js';
 import { loadSkillMap, ResultsList } from './features/skill-map/SkillMap';
-import { practiseTarget, usualSlip } from './features/skill-map/skills.js';
-import { pct, ScoreBar } from './ui';
+import { practiseParams } from './features/skill-map/skills.js';
+import { pct, ScoreBar, scorePoints } from './ui';
 import './home.css';
 
-type Card = { id: string; name: string; Icon: typeof DryRunIcon; skill: string; trains: string; score: number | null; setting: string; start: () => void; change: () => void };
-
-// The last Lens Review choice of lenses, so Start can repeat it straight away.
-function lastLensConfig() {
-  const drafts = Object.values(lensReviewData().drafts as Record<string, any>);
-  const last = drafts.at(-1);
-  return last ? { randomFocus: !!last.randomFocus, focus: last.focus || [] } : { randomFocus: true, focus: [] };
-}
+type Card = { id: string; name: string; Icon: typeof DryRunIcon; skill: string; trains: string; score: number | null; setting: string; start: () => void; change?: () => void };
 
 export default function StudentHome({ go, has }: ScreenProps) {
   const [, refresh] = useState(0);
@@ -35,13 +27,16 @@ export default function StudentHome({ go, has }: ScreenProps) {
     setDeleted(null); setDraftError(''); refresh(n => n + 1);
   }
   const map = loadSkillMap() as any;
-  const suggested = map.weakest ? practiseTarget(map.weakest, has) : null;
+  const course = readCourse();
+  const weakLens = map.weakest ? map.byLens[map.weakest] : null;
+  const weakTopic = weakLens?.topics[0];
+  const focus = map.weakest ? practiseParams(map.weakest, weakTopic?.topic, has) : null;
+  const suggested = focus?.id ?? null;
   const done = (fn: string) => listAttempts(fn).some((a: any) => a.status === 'submitted');
   const startFn = (fn: string, fromSuggestion: boolean) => ({
     start: () => go(fn, { difficulty: lastDifficulty(fn), fromSuggestion }),
     change: () => go(fn, { fromSuggestion }),
   });
-  const lens = lastLensConfig();
   const cards: Card[] = [
     ...features.filter(f => f.kind === 'practice' && f.card).map(f => ({
       id: f.id, name: f.label, Icon: f.id === 'dry-run' ? DryRunIcon : ConceptIcon, skill: f.card!.skill, trains: `Trains ${f.card!.lens}`,
@@ -51,25 +46,45 @@ export default function StudentHome({ go, has }: ScreenProps) {
     })),
     { id: 'lens-review', name: 'Lens Review', Icon: LensIcon, skill: 'Judge AI-generated code without being told what to look for.', trains: 'Trains any lens you pick',
       score: map.byFunction['lens-review']?.value ?? null,
-      setting: lens.randomFocus ? "Random lenses." : `Lenses: ${lens.focus.join(", ")}.`,
-      start: () => { try { go('lens-review', { start: choosePractice('Random', lens.focus, lens.randomFocus) }); } catch { go('lens-review', { setup: true }); } },
-      change: () => go('lens-review', { setup: true }) },
+      setting: 'You choose your lenses next.',
+      start: () => go('lens-review', { setup: true }) },
   ];
 
+  // One row per kind of practice, the newest, so this list can't keep growing.
   const unfinished = [
-    ...listAttempts().filter((a: any) => a.status === 'in_progress').reverse().map((a: any) => ({ id: a.id, kind: 'practice', name: (functionNames as any)[a.function], detail: `${label(a.difficulty)}, ${a.function === 'concept-match' ? 'mixed topics' : topicName(a.topicId).toLowerCase()}`, info: a.title || 'Practice in progress', criteria: `Started ${new Date(a.createdAt).toLocaleDateString()}`, notes: [] as string[], open: () => go(a.function, { attemptId: a.id }) })),
-    ...Object.entries(lensReviewData().drafts as Record<string, any>).filter(([, d]) => !d.submitted && !d.archived && (d.comments.length || d.noIssues)).reverse().map(([id, d]) => {
+    ...['dry-run', 'concept-match'].map(fn => listAttempts().filter((a: any) => a.status === 'in_progress' && a.function === fn).at(-1)).filter(Boolean).map((a: any) => ({ id: a.id, kind: 'practice', name: (functionNames as any)[a.function], detail: `${label(a.difficulty)}, ${a.function === 'concept-match' ? 'mixed topics' : topicName(a.topicId).toLowerCase()}`, info: a.title || 'Practice in progress', criteria: `Started ${new Date(a.createdAt).toLocaleDateString()}`, notes: [] as string[], open: () => go(a.function, { attemptId: a.id }) })),
+    ...Object.entries(lensReviewData().drafts as Record<string, any>).filter(([, d]) => !d.submitted && !d.archived && (d.comments.length || d.noIssues)).slice(-1).map(([id, d]) => {
       const exercise = exercises.find(e => e.id === (d.exerciseId || id));
       return { id, kind: 'lens', name: 'Lens Review', detail: `${exercise?.title || 'Review'}, ${d.noIssues ? 'no issues found' : `${d.comments.length} ${d.comments.length === 1 ? 'annotation' : 'annotations'}`}`, info: exercise?.brief || 'Review in progress', criteria: d.randomFocus ? 'Random lenses, revealed after you submit.' : `Lenses: ${(d.focus || []).join(', ')}.`,
         notes: d.noIssues ? [d.justification || 'Justification not written yet.'] : d.comments.map(normalizeComment).map((c: any) => `Lines ${c.start}–${c.end}: ${c.text}`), open: () => go('lens-review', { reviewId: id }) };
     }),
   ];
   const recent = [...map.recent].sort((a: any, b: any) => b.date.localeCompare(a.date)).slice(0, 4);
-  const course = readCourse();
 
   return <>
     <h1 className="page-title">Practice</h1>
-    {(unfinished.length > 0 || deleted) && <div className="continue-stack">
+    {focus && <section className="focus-line" aria-label="Recommended for you">
+      <p><strong>Recommended for you.</strong> {map.weakest} is your weakest lens, {pct(weakLens.value)} ({scorePoints(weakLens)}).{weakTopic && <> Start with {weakTopic.topic}, {pct(weakTopic.value)} ({scorePoints(weakTopic)}).</>}</p>
+      <div className="focus-actions">{has('skill-map') && <button className="text-link" onClick={() => go('skill-map')}>See Skill map</button>}{isUnlocked(focus.id, course) && <button className="btn btn-primary btn-sm" onClick={() => go(focus.id, focus.params)}>Practise {weakTopic?.topic || map.weakest}</button>}</div>
+    </section>}
+    <div className="practice-grid">{cards.map((c, i) => {
+      const isSuggested = suggested === c.id;
+      const open = isUnlocked(c.id, course);
+      return <article key={c.id} className={'card hoverable vf practice-card2' + (isSuggested ? ' suggested' : '')}>
+        <Brackets/>
+        <div className="practice-card-top"><span className="tile" aria-hidden="true"><c.Icon/></span>{isSuggested && <span className="chip strong">Suggested for you</span>}</div>
+        <div><h2>{c.name}</h2><p>{c.skill}</p></div>
+        <div className="practice-score">
+          <div><span>{c.trains}</span><strong className={c.score != null && c.score < 0.5 ? 'low' : ''}>{pct(c.score)}</strong></div>
+          <ScoreBar value={c.score} delay={0.15 + 0.1 * i}/>
+        </div>
+        {open ? <div className="practice-start">
+          <button className="btn btn-primary btn-block" onClick={c.start}>Start {c.name}</button>
+          <div className="practice-setting">{c.setting}{c.change && <button className="text-link" onClick={c.change}>Change</button>}</div>
+        </div> : <p className="preparing-note">Your TA is preparing this.</p>}
+      </article>;
+    })}</div>
+    {(unfinished.length > 0 || deleted) && <section aria-labelledby="continue-title" className="results-section"><h2 id="continue-title" className="section-title-lg">Continue where you left off</h2><div className="continue-stack">
       {deleted && <div className="draft-undo" role="status">Draft deleted.<button className="text-link" onClick={undoDelete}>Undo</button></div>}
       {draftError && <p className="error-text" role="alert">{draftError}</p>}
       {unfinished.map(u => { const key = u.kind + u.id; const isOpen = expanded === key; return <article key={key} className="continue-card">
@@ -84,25 +99,7 @@ export default function StudentHome({ go, has }: ScreenProps) {
         </div>
         {isOpen && <div className="continue-more panel-in"><p>{u.info}</p><p className="muted-text">{u.criteria}</p>{u.notes.length > 0 && <ul>{u.notes.map((n: string, i: number) => <li key={i}>{n}</li>)}</ul>}</div>}
       </article>; })}
-    </div>}
-    <div className="practice-grid">{cards.map((c, i) => {
-      const isSuggested = suggested === c.id;
-      const open = isUnlocked(c.id, course);
-      return <article key={c.id} className={'card hoverable vf practice-card2' + (isSuggested ? ' suggested' : '')}>
-        <Brackets/>
-        <div className="practice-card-top"><span className="tile" aria-hidden="true"><c.Icon/></span>{isSuggested && <span className="chip strong">Suggested for you</span>}</div>
-        <div><h2>{c.name}</h2><p>{c.skill}</p></div>
-        {isSuggested && <p className="slip-note">{usualSlip(map, map.weakest)}</p>}
-        <div className="practice-score">
-          <div><span>{c.trains}</span><strong className={c.score != null && c.score < 0.5 ? 'low' : ''}>{pct(c.score)}</strong></div>
-          <ScoreBar value={c.score} delay={0.15 + 0.1 * i}/>
-        </div>
-        {open ? <div className="practice-start">
-          <button className="btn btn-primary btn-block" onClick={c.start}>Start {c.name}</button>
-          <div className="practice-setting">{c.setting}<button className="text-link" onClick={c.change}>Change</button></div>
-        </div> : <p className="preparing-note">Your TA is preparing this.</p>}
-      </article>;
-    })}</div>
+    </div></section>}
     <section aria-labelledby="recent-title" className="results-section">
       <div className="results-head"><h2 id="recent-title" className="section-title-lg">Recent results</h2>{has('skill-map') && <button className="text-link" onClick={() => go('skill-map')}>See all in Skill map</button>}</div>
       {recent.length ? <ResultsList items={recent} go={go} has={has}/> : <p className="muted-text">Your results appear here after your first exercise.</p>}

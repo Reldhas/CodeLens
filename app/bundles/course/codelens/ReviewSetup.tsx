@@ -5,7 +5,7 @@ import { choosePractice } from './review-flow.js';
 import { isPresentation, presentationPractice } from './presentation.js';
 export type PracticeConfig = { exerciseId: string; topic: string; focus: string[]; randomFocus: boolean };
 export default function ReviewSetup({ onStart }: { onStart: (config: PracticeConfig) => void }) {
-  const [focus, setFocus] = useState<string[]>(()=>[isPresentation()?'Maintainability':'Efficiency']);
+  const [focus, setFocus] = useState<string[]>([]);
   const [randomFocus, setRandomFocus] = useState(false);
   const [error, setError] = useState('');
   function start(e: React.FormEvent) {
@@ -18,8 +18,8 @@ export default function ReviewSetup({ onStart }: { onStart: (config: PracticeCon
     <p>Choose one or more criteria.</p>
     <form onSubmit={start}>
       <fieldset><legend className="sr-only">Training criteria</legend><div className="setup-focus">
-        {dimensions.map(area=><label key={area} className={focus.includes(area)&&!randomFocus?'chosen':''}>
-          <input type="checkbox" checked={!randomFocus&&focus.includes(area)} disabled={randomFocus} onChange={()=>{setFocus(f=>f.includes(area)?f.filter(a=>a!==area):[...f,area]);setError('');}}/><span>{area}<small>{({Correctness:"Bugs & edge cases",Appropriateness:"The right approach",Efficiency:"Time & memory",Maintainability:"Readable, adaptable code"} as Record<string,string>)[area]}</small></span>
+        {dimensions.map(area=><label key={area} className={randomFocus||focus.includes(area)?'chosen':''}>
+          <input type="checkbox" checked={randomFocus||focus.includes(area)} disabled={randomFocus} onChange={()=>{setFocus(f=>f.includes(area)?f.filter(a=>a!==area):[...f,area]);setError('');}}/><span>{area}<small>{({Correctness:"Bugs & edge cases",Appropriateness:"The right approach",Efficiency:"Time & memory",Maintainability:"Readable, adaptable code"} as Record<string,string>)[area]}</small></span>
         </label>)}
       </div><label className="random-focus"><input type="checkbox" checked={randomFocus} onChange={e=>{setRandomFocus(e.target.checked);setError('');}}/><Shuffle size={15}/>Random</label></fieldset>
 

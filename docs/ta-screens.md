@@ -44,9 +44,9 @@ Waiting items come first, then those with more flags, then the newest.
   Approve and send, Skip, and Watch the student.
 
 The student then gets a notice on the home screen, opening a page with the score,
-summary and TA comments. An adjusted score also changes the Skill Map, when that
-screen is merged. The latest send wins: setting the score or summary back to the
-AI's version after an earlier edit shows the AI's version again.
+summary and TA comments. The latest score the TA sends wins, even one equal to
+the AI's after an earlier change. An adjusted score also changes the Skill Map, when that
+screen is merged.
 
 ## Class Insights
 

@@ -4,7 +4,7 @@ import { validateSubmission } from '../server/review.mjs';
 const config = providerConfig(process.env);
 if (!config.key) { console.error(`Set ${config.name === 'gemini' ? 'GEMINI_API_KEY' : 'OPENAI_API_KEY'} in your local .env first.`); process.exitCode = 1; }
 else {
-  const review = validateSubmission({ exerciseId: 'seats', focus: ['Efficiency'], comments: [{ start: 6, end: 9, dimension: 'Efficiency', claim: 'Nested scanning repeats work.', reasoning: 'Each requested seat scans every booked seat, costing O(r*b).', fix: 'Build a set of booked seats once for membership lookup.' }], noIssues: false, justification: '' });
+  const review = validateSubmission({ exerciseId: 'seats', focus: ['Efficiency'], comments: [{ start: 6, end: 9, lenses: ['Efficiency'], text: 'Nested scanning repeats work. Each requested seat scans every booked seat, costing O(r*b).', fix: 'Build a set of booked seats once for membership lookup.' }], noIssues: false, justification: '' });
   const request = providerRequest(review, config);
   try {
     const response = await fetch(request.url, { method: 'POST', headers: request.headers, body: JSON.stringify(request.body), signal: AbortSignal.timeout(45000) });

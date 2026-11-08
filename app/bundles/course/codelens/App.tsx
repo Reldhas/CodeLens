@@ -114,7 +114,7 @@ export default function App({ onHome, onHistoryBack, params = {} }: { onHome: ()
     update({ ...draft, noIssues: false, justification: '', comments: editing ? draft.comments.map(c => c.id === editing ? comment : c) : [...draft.comments, comment] });
     clearEditor();
   }
-  const requestPayload = () => ({ exerciseId, focus, comments: draft.comments.map(normalizeComment).map(({ start, end, lenses, text, fix }: any) => ({ start, end, lenses, text, fix })), noIssues: !!draft.noIssues, justification: draft.justification || '' });
+  const requestPayload = () => ({ exerciseId, focus: allowedFocus, comments: draft.comments.map(normalizeComment).map(({ start, end, lenses, text, fix }: any) => ({ start, end, lenses, text, fix })), noIssues: !!draft.noIssues, justification: draft.justification || '' });
   // A live review signs in first if needed. If anything fails the draft stays as it was.
   async function submit() {
     const message = submissionError(draft, range.length > 0); if (message) { setError(message); return; }
@@ -165,7 +165,7 @@ export default function App({ onHome, onHistoryBack, params = {} }: { onHome: ()
   </>;
 
   if (busy) return <>
-    <SlimBar title="Lens Review" meta="Evaluating" onExit={onHome} leave={null}/>
+    <SlimBar title="Lens Review" meta="Evaluating" leave={null}/>
     <section className="sheet center-sheet lr-evaluating" role="status" aria-live="polite"><span className="tile big" aria-hidden="true"><SparkIcon size={24}/></span><h2>Evaluating your review</h2><p>Comparing your annotations with the code and requirements.</p></section>
   </>;
 
@@ -210,7 +210,7 @@ export default function App({ onHome, onHistoryBack, params = {} }: { onHome: ()
       <aside className="sheet work-side" aria-label="Your review">
         {tabs}
         <div className="work-side-body">
-          {tab === 'feedback' ? <LensResult exercise={exercise} comments={draft.comments} result={result} noIssues={draft.noIssues} justification={draft.justification} focus={focus} note={draft.sampleNote}
+          {tab === 'feedback' ? <LensResult exercise={exercise} comments={draft.comments} result={result} noIssues={draft.noIssues} justification={draft.justification} focus={allowedFocus} note={draft.sampleNote}
             taScore={ta.adjustedScore} ta={ta.available ? <TaNote comments={ta.comments}/> : undefined}
             rating={<AnswerFeedback target="AI feedback" value={draft.ratings?.feedback} onChange={rating => update({ ...draft, ratings: { ...draft.ratings, feedback: rating } })}/>}/>
             : tab === 'guide' ? guide : <section className="lr-saved">{draft.noIssues ? <article className="saved-note"><div className="note-head"><span className="lens-tag">No issues found</span></div><p>{draft.justification}</p></article> : saved}</section>}
@@ -241,8 +241,8 @@ export default function App({ onHome, onHistoryBack, params = {} }: { onHome: ()
               <fieldset className="lens-pick"><legend>{multiLens ? '1. Which lenses fail here? Choose one or more.' : '1. Which lens fails here?'}</legend><div>
                 {allowedFocus.map(d => { const on = form.lenses.includes(d); return <button type="button" key={d} className="chip-toggle" aria-pressed={on} onClick={() => { setError(''); setForm({ ...form, lenses: multiLens ? (on ? form.lenses.filter(l => l !== d) : [...form.lenses, d]) : [d] }); }}>{on && <CheckIcon/>}{d}</button>; })}
               </div></fieldset>
-              <label className="field">2. What’s wrong, and why?<textarea rows={4} placeholder="Describe the problem and why it matters." value={form.text} onChange={e => setForm({ ...form, text: e.target.value })}/></label>
-              <label className="field">3. Proposed fix<textarea rows={2} placeholder="How would you change the code?" value={form.fix} onChange={e => setForm({ ...form, fix: e.target.value })}/></label>
+              <label className="field">2. What’s wrong, and why?<textarea rows={4} maxLength={8000} placeholder="Describe the problem and why it matters." value={form.text} onChange={e => setForm({ ...form, text: e.target.value })}/></label>
+              <label className="field">3. Proposed fix<textarea rows={2} maxLength={4000} placeholder="How would you change the code?" value={form.fix} onChange={e => setForm({ ...form, fix: e.target.value })}/></label>
               {error && <p className="error-text" role="alert">{error}</p>}
               <div className="lr-form-actions"><button type="button" className="btn btn-outline btn-sm" onClick={clearEditor}>Cancel</button><button type="submit" className="btn btn-primary btn-sm">{editing ? 'Save changes' : 'Save annotation'}</button></div>
             </form>}

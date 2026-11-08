@@ -3,7 +3,7 @@ import AnswerFeedback from '../../AnswerFeedback';
 import { SlimBar } from '../../bars';
 import DifficultySetup, { type Difficulty } from '../../DifficultySetup';
 import type { ScreenProps } from '../../features';
-import { approvedItems, eligibleItems, pickItems, readCourse, topicName } from '../../course.js';
+import { approvedItems, eligibleForTopic, pickItems, readCourse, topicName } from '../../course.js';
 import { SparkIcon, TerminalIcon } from '../../icons';
 import { createAttempt, getAttempt, listAttempts, updateAttempt } from '../../practice-log.js';
 import DemoFill from '../../DemoFill';
@@ -21,7 +21,7 @@ export default function DryRunScreen({ params, go }: ScreenProps) {
   const [error, setError] = useState('');
   function start(difficulty: Difficulty) {
     const done = listAttempts('dry-run').flatMap((a: any) => a.exerciseIds);
-    const [question] = pickItems(eligibleItems(approvedItems('dry-run', questions), difficulty, readCourse().publishedTopics.filter((id: string) => !params.topicId || id === params.topicId)), 1, done);
+    const [question] = pickItems(eligibleForTopic(approvedItems('dry-run', questions), difficulty, readCourse().publishedTopics, params.topicId), 1, done);
     if (!question) { setError('Your TA is preparing this: nothing is approved and published at this difficulty yet.'); return; }
     setAttemptId(createAttempt({ function: 'dry-run', title: question.title, difficulty, topicId: question.topicId, exerciseIds: [question.id], fromSuggestion: !!params.fromSuggestion }).id);
   }

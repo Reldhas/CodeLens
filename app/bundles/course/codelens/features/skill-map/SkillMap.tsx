@@ -104,7 +104,7 @@ export default function SkillMap({ go, has }: ScreenProps) {
         })}
       </section>
     </div>
-    <p className="muted-text skill-key">The brackets show points earned out of answers counted. Half credit counts as 0.5, and each Lens Review counts as one answer in By practice mode.</p>
+    <p className="muted-text skill-key">The brackets show points earned out of answers counted. Right lines with the wrong lens count as 0.5, a half-credit Dry Run counts as 0, and each Lens Review counts as one answer in By practice mode.</p>
     <Trend trend={map.trend}/>
     <section aria-labelledby="hist-title" className="results-section"><h2 id="hist-title" className="section-title-lg">All results</h2><ResultsList items={items} go={go} has={has}/></section>
   </div>;

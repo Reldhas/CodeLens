@@ -26,17 +26,16 @@ Google Fonts is optional; system fonts work if offline.
 
 ## Demo walkthrough
 
-1. Open Lens Review from the practice menu. Choose one or more training criteria (or Random criteria), then start practice. The scenario is chosen automatically from matching samples. Random focus stays hidden until submission. Returning users can resume a saved draft or start another review. The workspace provides a Back to review setup link. Read the brief before reviewing the code.
-2. Click line 6, then line 9, to select the nested lookup. This opens the Annotations tab beside Review guide.
-3. Choose Efficiency. Example claim: "The nested loop scans every booked seat."
-4. Explain that each request scans the whole list, resulting in O(r*b) time.
-5. Propose building a set of booked seats before the loop. Save the annotation.
-6. Edit or delete annotations before submission. Alternatively, select No issues found beside Submit review and give a justification (this is mutually exclusive with annotations). Submit to lock the review.
-7. Read the model answer and corrected code directly below the score. Expand Scoring details for the rubric breakdown.
-8. Visit My progress from the feedback panel, or try the shopping discount exercise for boundary cases.
+1. Choose Start Lens Review on the Practice page. Choose one or more lenses, or tick Random to include all four, then start. The exercise is chosen automatically from matching samples. Drafts with saved work can be resumed under Continue where you left off.
+2. Click line 6 and drag to line 9 to select the nested lookup. The annotation form opens beside the code.
+3. Under 1, choose Efficiency. Under 2, What's wrong, and why?, write: "The nested loop scans every booked seat, so each request checks the whole list, which takes O(r*b) time."
+4. Under 3, Proposed fix, suggest building a set of booked seats before the loop. Save the annotation.
+5. Edit or delete annotations before submission. Alternatively, tick I found no issues in this code and say what you checked (this cannot be combined with annotations). Submit to lock the review.
+6. Read the result: each planted issue is marked You found this or You missed this, with its explanation and fix, and the code is marked to match. Expand How this was scored for the breakdown.
+7. Open the Skill map from the top bar, or try the shopping discount exercise for boundary cases.
 
 Saved annotations, submitted reviews, and history persist in browser localStorage
-under `codelens-demo-v1`. Open annotation form text, selected lines, and review setup are saved with each draft. Back to review setup opens the separate training-criteria screen while preserving previous drafts and submitted history. Analytics show the last
+under `codelens-demo-v1`. Open annotation form text, selected lines, and review setup are saved with each draft. Analytics show the last
 30 days; records remain until browser storage is cleared. Storage failure falls
 back to session memory and displays a notice.
 
@@ -54,8 +53,8 @@ Maintainability across the cinema and shopping scenarios. Two samples have no
 issues. Variants share their scenario titles so the title does not reveal the
 answer. The selected focus filters out samples with issues outside those areas;
 some topic/focus combinations currently have only an issue-free example.
-Random focus is selected once and saved with the attempt. Its selected areas
-are hidden until submission; annotations may use any of the four areas.
+Random includes all four lenses, so annotations may use any of them. Which
+lenses have planted issues is shown only after submission.
 
 A correct **No issues found** conclusion earns 10/10 only when a nonblank
 justification is supplied and no annotations are present. Incorrect conclusions

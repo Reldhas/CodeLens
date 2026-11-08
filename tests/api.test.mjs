@@ -19,6 +19,8 @@ test('trusted exercise and prompt; hostile client reference cannot override it',
   const comment = submission.comments[0];
   assert.deepEqual(validateSubmission({ ...submission, comments: [{ ...comment, lenses: ['Efficiency', 'Correctness'] }] }).comments[0].lenses, ['Efficiency', 'Correctness']);
   for (const bad of [{ lenses: [] }, { lenses: ['Efficiency', 'Efficiency'] }, { lenses: ['Made up'] }, { lenses: 'Efficiency' }, { text: ' ' }]) assert.throws(() => validateSubmission({ ...submission, comments: [{ ...comment, ...bad }] }));
+  assert.ok(validateSubmission({ ...submission, comments: [{ ...comment, text: 'x'.repeat(8000) }] }));
+  for (const bad of [{ text: 'x'.repeat(8001) }, { fix: 'x'.repeat(4001) }]) assert.throws(() => validateSubmission({ ...submission, comments: [{ ...comment, ...bad }] }));
   assert.throws(() => validateSubmission({ ...submission, comments: [{ start: 6, end: 9, dimension: 'Efficiency', claim: 'Old form', reasoning: 'Old form', fix: 'Old form' }] }));
 });
 test('HTTP auth, origin, limits, validation, provider failures and logout', async t => {

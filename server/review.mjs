@@ -18,7 +18,7 @@ export function validateSubmission(data) {
   if (data.noIssues ? data.comments.length || !data.justification.trim() : !data.comments.length) fail();
   const comments = data.comments.map(c => {
     if (!c || !Number.isInteger(c.start) || !Number.isInteger(c.end) || c.start < 1 || c.end < c.start || c.end > exercise.code.length || !Array.isArray(c.lenses) || !c.lenses.length || new Set(c.lenses).size !== c.lenses.length || c.lenses.some(l => !dimensions.includes(l))) fail();
-    for (const key of ['text', 'fix']) if (typeof c[key] !== 'string' || !c[key].trim() || c[key].length > 4000) fail();
+    for (const key of ['text', 'fix']) if (typeof c[key] !== 'string' || !c[key].trim() || c[key].length > (key === 'text' ? 8000 : 4000)) fail();
     return { start: c.start, end: c.end, lenses: c.lenses, text: c.text, fix: c.fix };
   });
   return { exercise, focus: data.focus, noIssues: data.noIssues, justification: data.justification, comments };

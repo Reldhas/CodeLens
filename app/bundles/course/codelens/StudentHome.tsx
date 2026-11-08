@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { ChevronDown, Trash2 } from 'lucide-react';
 import { features, type ScreenProps } from './features';
-import { normalizeComment } from './model.js';
 import { functionNames, isUnlocked, label, readCourse, topicName } from './course.js';
 import { Brackets, ConceptIcon, DryRunIcon, LensIcon, ResumeIcon } from './icons';
-import { exercises } from './model.js';
+import { exercises, normalizeComment } from './model.js';
 import { lastDifficulty, lensReviewData, listAttempts, setDraftArchived } from './practice-log.js';
 import { loadSkillMap, ResultsList } from './features/skill-map/SkillMap';
 import { practiseParams } from './features/skill-map/skills.js';

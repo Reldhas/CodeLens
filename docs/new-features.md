@@ -39,10 +39,10 @@ downloaded at that point. There are 18 sample questions.
 There are 30 sample questions. Feedback is rule-based and labelled Simulated,
 like Lens Review. Both exercises can be left and resumed.
 
-**Lens Review feedback per comment:** under the score, each of the student's
-comments gets one AI feedback box: whether the claim names the issue, the lines,
-the reasoning and the fix (`LensFeedback.tsx`, `lens-feedback.js`). It follows the rules of `assess()` and doesn't change the
-score.
+**Lens Review feedback:** after submitting, each planted issue is marked found or
+missed, and a comment that matches no planted issue gets its own note
+(`LensResult.tsx`, `lens-feedback.js`). It follows the rules of `assess()` and
+doesn't change the score.
 
 **Demo shortcuts:** opening the app with `?demo` in the address adds **Fill a good
 answer** and **Fill a wrong answer** to every exercise. See

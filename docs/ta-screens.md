@@ -38,15 +38,14 @@ Generation is simulated: the samples are written in advance.
 Lists Lens Review submissions: this browser's real ones plus sample students.
 Waiting items come first, then those with more flags, then the newest.
 
-- **Flags:** low AI confidence, student 👎 and watching.
+- **Flags:** low AI confidence and student disagreed.
 - **Opening one:** the code, the student's comments, the AI draft and the answer key.
-- **Actions:** rate the AI feedback, edit its summary, adjust the score, comment,
-  Approve and send, Skip, and Watch the student.
+- **Actions:** rate the AI feedback, give your own score, comment, Approve and send,
+  and Skip. The AI's feedback itself can't be edited.
 
-The student then gets a notice on the home screen, opening a page with the score,
-summary and TA comments. An adjusted score also changes the Skill Map, when that
-screen is merged. The latest send wins: setting the score or summary back to the
-AI's version after an earlier edit shows the AI's version again.
+The student then gets a bell notification, which opens the review at the TA comment. The latest score the TA sends wins, even one equal to
+the AI's after an earlier change. An adjusted score also changes the Skill Map, when that
+screen is merged.
 
 ## Class Insights
 

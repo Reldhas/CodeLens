@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { createApp } from '../server/index.mjs';
 import { providerConfig, providerRequest, providerFeedback } from '../server/provider.mjs';
 import { validateSubmission } from '../server/review.mjs';
-const input = { exerciseId: 'seats', focus: ['Efficiency'], comments: [{ start: 6, end: 9, dimension: 'Efficiency', claim: 'Nested scanning', reasoning: 'Every request scans all booked seats.', fix: 'Use a set.' }], noIssues: false, justification: '' };
-const feedback = { rubric: { claim: 2.5, evidence: 2.5, reasoning: 2.5, fix: 2.5 }, found: 1, summary: 'Good review.', improvements: [] };
+const input = { exerciseId: 'seats', focus: ['Efficiency'], comments: [{ start: 6, end: 9, lenses: ['Efficiency'], text: 'Nested scanning Every request scans all booked seats.', fix: 'Use a set.' }], noIssues: false, justification: '' };
+const feedback = { rubric: { issue: 2.5, lines: 2.5, explanation: 2.5, fix: 2.5 }, found: 1, summary: 'Good review.', improvements: [] };
 const response = { candidates: [{ finishReason: 'STOP', content: { parts: [{ thought: true, text: 'private reasoning' }, { text: JSON.stringify(feedback) }] } }] };
 test('Gemini request keeps key in header, uses structured schema, rejects blocked/incomplete output', () => {
   const config = providerConfig({ AI_PROVIDER: 'gemini', GEMINI_API_KEY: 'private-key' });

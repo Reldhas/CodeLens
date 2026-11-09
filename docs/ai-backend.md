@@ -30,13 +30,13 @@ No live API call occurs until submission. Passwords are kept in component memory
 | POST /api/logout | Revokes session and clears cookie |
 | POST /api/review | Authenticated review; returns `{ "result": { "rubric", "total", "found", "summary", "improvements", "source": "ai" } }` |
 
-Review input: `exerciseId`, `focus` (array of known criteria), `comments` (line range, dimension, claim, reasoning, fix), `noIssues`, `justification`. The backend resolves code and reference findings from its own exercise bank; client-supplied reference material is ignored. Students can inspect the same sample answers in the frontend, so this is a practice tool, not a secure examination system.
+Review input: `exerciseId`, `focus` (array of known criteria), `comments` (line range, `lenses` array, `text` for what is wrong and why, `fix`), `noIssues`, `justification`. The backend resolves code and reference findings from its own exercise bank; client-supplied reference material is ignored. Students can inspect the same sample answers in the frontend, so this is a practice tool, not a secure examination system.
 
 ## Request message
 
 The exact developer instructions are exported as `instructions` in `server/review.mjs`. An example complete provider request is in `docs/review-request.example.json`, generated with the same `prepareRequest` function used by the endpoint.
 
-Instructions ask a supportive tutor to treat student text as untrusted data, assess meaning against requirements and curated findings, grade claim/evidence/reasoning/fix from 0–2.5 each, and explain strengths and improvements. The user input is JSON containing numbered exercise code, requirements, reference findings/code and the student review. Strict structured output specifies the response shape; server validation checks bounds and computes the total. No tools or code execution are enabled. See [OpenAI structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
+Instructions ask a supportive tutor to treat student text as untrusted data, assess meaning against requirements and curated findings, grade issue/lines/explanation/fix from 0–2.5 each, and explain strengths and improvements. The user input is JSON containing numbered exercise code, requirements, reference findings/code and the student review. Strict structured output specifies the response shape; server validation checks bounds and computes the total. No tools or code execution are enabled. See [OpenAI structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
 
 `store: false` is sent to the provider. This does not promise zero provider retention; apply your institution's data policy and provider account settings. The application does not log submitted code, passwords, provider responses or keys.
 

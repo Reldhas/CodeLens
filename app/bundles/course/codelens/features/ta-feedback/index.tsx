@@ -8,7 +8,7 @@ import { nextPractice } from '../../review-flow.js';
 import { readTa, writeTa } from '../../practice-log.js';
 import { PanelFooter, ResultChip, WorkArea } from '../../ui';
 import { taFeedbackFor } from '../review-queue/queue.js';
-import { allReviews, allSubmissions, demoStudent } from '../review-queue/submissions.js';
+import { allReviews, allSubmissions, demoStudent, liveSubmissions } from '../review-queue/submissions.js';
 const mine = () => allSubmissions().filter(s => s.student === demoStudent);
 const titleOf = (exercise: string) => exercises.find(e => e.id === exercise)?.title;
 const stampOf = (id: string, sent: number) => id + ':' + sent;
@@ -46,7 +46,7 @@ export function unreadTaFeedback(): TaAnnouncement[] {
 // One bell notification per review with TA feedback the student hasn't opened yet. It opens the review at the comment.
 function notifications(): Note[] {
   const reviews = allReviews();
-  return mine().flatMap(s => {
+  return liveSubmissions().flatMap((s: { id: string; exercise: string }) => {
     const sent = taFeedbackFor(reviews.filter((r: any) => r.attemptId === s.id)).sent.length;
     if (!sent) return [];
     const stamp = stampOf(s.id, sent);

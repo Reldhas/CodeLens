@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { exercises } from '../app/bundles/course/codelens/model.js';
 import { buildQueue, confidenceOf, makeReview, queueCounts, statusOf, taFeedbackFor } from '../app/bundles/course/codelens/features/review-queue/queue.js';
-import { allSubmissions, sampleReviews, sampleSubmissions } from '../app/bundles/course/codelens/features/review-queue/submissions.js';
+import { allSubmissions, liveSubmissions, sampleReviews, sampleSubmissions } from '../app/bundles/course/codelens/features/review-queue/submissions.js';
 import { approvedItems, defaultCourse } from '../app/bundles/course/codelens/course.js';
 import { reviewedScore } from '../app/bundles/course/codelens/attempt-summary.js';
 import { commonGaps, computeInsights, feedbackQuality } from '../app/bundles/course/codelens/features/class-insights/insights.js';
@@ -44,6 +44,11 @@ test('the student gets the latest edit and score and every comment',()=>{
 test('sample submissions use real exercises, and the demo student has a sent review',()=>{
   assert.ok(sampleSubmissions.every(s=>exercises.some(e=>e.id===s.exercise)));
   assert.ok(sampleSubmissions.some(s=>s.id===sampleReviews[0].attemptId));
+});
+test('live submissions exclude the bundled sample submissions',()=>{
+  delete globalThis.localStorage;
+  assert.deepEqual(liveSubmissions(),[]);
+  assert.ok(allSubmissions().some(s=>sampleSubmissions.some(sample=>sample.id===s.id)));
 });
 test('sample class gives the screens something to show',()=>{
   const data=computeInsights(sampleClass,sampleVotes);

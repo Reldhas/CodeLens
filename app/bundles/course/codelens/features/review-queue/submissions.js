@@ -29,7 +29,7 @@ export const sampleReviews = [
 ];
 // Example feedback a TA might write, for the demo shortcut on the review screen.
 export const exampleTaFeedback = { 'sub-tom': "Good instinct to check the order. A list comprehension keeps the order of requested, so this code is fine. Run available_seats(['A1'], ['B2', 'A1', 'C3']) in the terminal to see it." };
-function realSubmissions() {
+export function liveSubmissions() {
   const { attempts, drafts } = lensReviewData();
   return attempts.map(a => {
     // Drafts record their attempt; older ones without it fall back to the same exercise.
@@ -37,5 +37,5 @@ function realSubmissions() {
     return { id: a.id, student: demoStudent, exercise: a.exercise, date: a.date, comments: a.comments, result: a.result, noIssues: !!a.noIssues, justification: a.justification || '', studentVote: draft?.ratings?.feedback?.vote || null };
   });
 }
-export const allSubmissions = () => [...realSubmissions(), ...sampleSubmissions];
+export const allSubmissions = () => [...liveSubmissions(), ...sampleSubmissions];
 export const allReviews = () => [...sampleReviews, ...readTa().reviews];

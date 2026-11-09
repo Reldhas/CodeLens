@@ -106,8 +106,6 @@ test('next random exercise keeps random mode',()=>{
 
 test('a realistic review of each Appropriateness and Maintainability exercise earns full marks',()=>{
   const reviews={
-    'login-maintainability': ['A mutable default argument creates shared state that leaks memory across requests.', 'Use attempts=None or a dedicated class.'],
-    'seats-maintainability': ['A mutable default argument creates shared state that leaks memory across requests.', 'Use attempts=None or a dedicated class.'],
     'seats-appropriateness-bisect': ['Sorting the list and using binary search is more machinery than this question needs here.', 'Use a set and not in.'],
     'seats-appropriateness-exceptions':['The code catches a KeyError to detect a free seat, which is a normal outcome here.','Check not in a set.'],
     'seats-maintainability-flag':['The as_text flag makes this one function do two things and return different types.','Split formatting into its own function.'],
@@ -122,5 +120,23 @@ test('a realistic review of each Appropriateness and Maintainability exercise ea
     assert.equal(e.findings.length,1,id);
     const f=e.findings[0];
     assert.equal(assess(e,[{start:f.start,end:f.end,lenses:[f.dimension],text,fix}]).total,10,id);
+  }
+});
+
+test('a realistic review of the seat ordering exercise earns full marks',()=>{
+  const e=exercises.find(x=>x.id==='seats-correctness');
+  const [f]=e.findings;
+  assert.equal(assess(e,[{start:f.start,end:f.end,lenses:[f.dimension],text:'Calling sorted changes the output, so seats no longer come back in their requested order.',fix:'Remove sorted and keep the list comprehension.'}]).total,10);
+});
+
+test('the login tracker needs both its Maintainability and Correctness issues for full marks',()=>{
+  const maintainability={start:1,end:6,lenses:['Maintainability'],text:'A mutable default argument creates shared state that leaks memory across requests.',fix:'Use attempts=None or a dedicated class.'};
+  const correctness={start:7,end:7,lenses:['Correctness'],text:'Using >= 3 is off by one, because a user with exactly 3 recent attempts has not exceeded the limit.',fix:'Change the check to len(recent) > 3.'};
+  for(const id of ['login-maintainability','seats-maintainability']){
+    const e=exercises.find(x=>x.id===id);
+    assert.deepEqual(e.findings.map(f=>f.dimension),['Maintainability','Correctness'],id);
+    assert.equal(assess(e,[maintainability]).total,5,id);
+    assert.equal(assess(e,[correctness]).total,5,id);
+    assert.equal(assess(e,[maintainability,correctness]).total,10,id);
   }
 });

@@ -7,11 +7,12 @@ export const isPresentation = (search = globalThis.location?.search || '') => {
   const val = new URLSearchParams(search).get('presentation');
   return val === 'true' || val === 'maintainability';
 };
+const presentationFocus = ['Correctness', 'Maintainability'];
 export function presentationPractice(focus, randomFocus, bank = approvedItems('lens-review', exercises), topic = 'Random') {
-  if (randomFocus || focus.length !== 1 || focus[0] !== 'Maintainability' || (topic !== 'Random' && topic !== 'Lists & membership')) return choosePractice(topic, focus, randomFocus, Math.random, bank);
+  if (randomFocus || focus.length !== presentationFocus.length || !presentationFocus.every(lens => focus.includes(lens)) || (topic !== 'Random' && topic !== 'Lists & membership')) return choosePractice(topic, focus, randomFocus, Math.random, bank);
   const exercise = bank.find(item => item.id === 'login-maintainability' || item.id === 'seats-maintainability');
-  if (!exercise) throw new Error('The presentation exercise is not approved. Ask your TA to approve Login attempt tracker (Maintainability) before rehearsing.');
-  return { exerciseId: exercise.id, topic: exercise.topic, focus: ['Maintainability'], randomFocus: false };
+  if (!exercise) throw new Error('The presentation exercise is not approved. Ask your TA to approve Login attempt tracker (2 planted issues) before rehearsing.');
+  return { exerciseId: exercise.id, topic: exercise.topic, focus: [...presentationFocus], randomFocus: false };
 }
 
 export function presentationDryRun(items) {

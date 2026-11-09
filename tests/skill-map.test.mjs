@@ -61,3 +61,28 @@ test('a Lens Review attempt reopens its own submitted draft, not the latest one'
   assert.equal(draftForAttempt(gone, drafts), null);
   assert.deepEqual(attemptAsDraft(gone), { exerciseId: 'seats', focus: ['Efficiency'], randomFocus: undefined, comments: [comment('c')], noIssues: false, justification: '', submitted: true });
 });
+
+test('a lens and a practice mode break down by topic, weakest first, with points earned',()=>{
+  const list=[attempt('dry-run',[{lens:'Correctness',value:1,source:'exam',topic:'Loops'},{lens:'Correctness',value:1,source:'exam',topic:'Loops'},{lens:'Correctness',value:0,source:'exam',topic:'Lists & strings'}])];
+  const map=computeSkillMap(list,now);
+  assert.deepEqual(map.byLens.Correctness.topics.map(t=>[t.topic,t.points,t.items]),[['Lists & strings',0,1],['Loops',2,2]]);
+  assert.deepEqual(map.byFunction['dry-run'].topics.map(t=>t.topic),['Lists & strings','Loops']);
+  assert.equal(map.byLens.Correctness.points,2);
+});
+test('the trend averages each of the last four weeks and compares the first and last with practice',()=>{
+  const at=(score,days)=>({function:'dry-run',items:[],score,date:new Date(now.getTime()-days*86400000).toISOString()});
+  const {weeks,change}=computeSkillMap([at(0.25,25),at(0.75,24),at(1,2)],now).trend;
+  assert.deepEqual(weeks.map(w=>w.value),[0.5,null,null,1]);assert.equal(change,0.5);
+  assert.equal(computeSkillMap([at(1,2)],now).trend.change,null);
+});
+test('the sample trend rises week by week',()=>{
+  const values=computeSkillMap(sampleHistory).trend.weeks.map(w=>w.value);
+  assert.ok(values.every((v,i)=>v!=null&&(i===0||v>values[i-1])));
+});
+test('Practise opens the topic in an exam-style exercise, or Lens Review with the lens chosen',async()=>{
+  const { practiseParams } = await import('../app/bundles/course/codelens/features/skill-map/skills.js');
+  const all=()=>true;
+  assert.equal(practiseParams('Correctness','Loops',all).params.topicId,'loops');
+  assert.deepEqual(practiseParams('Correctness','Conditions & boundaries',all),{id:'lens-review',params:{setup:true,focus:['Correctness'],topic:'Conditions & boundaries'}});
+  assert.equal(practiseParams('Efficiency','Lists & membership',all).id,'lens-review');
+});

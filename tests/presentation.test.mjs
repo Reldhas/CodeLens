@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { isPresentation, presentationPractice } from '../app/bundles/course/codelens/presentation.js';
 import { exercises } from '../app/bundles/course/codelens/model.js';
-import { aiSummary } from '../app/bundles/course/codelens/features/review-queue/queue.js';
 
 test('presentation is explicit and repeatedly selects the same real maintainability task',()=>{
   assert.equal(isPresentation(''),false);
@@ -23,9 +22,8 @@ test('presentation respects other selected criteria rather than mislabeling them
   assert.ok(exercises.find(e=>e.id===config.exerciseId).findings.every(f=>f.dimension==='Efficiency'));
 });
 
-test('TA summary preserves live AI feedback and retains demo fallback',()=>{
-  const exercise=exercises.find(e=>e.id==='seats-maintainability');
-  const result={source:'ai',summary:'The claim is valid, but the proposed names swap booked and requested.',found:1};
-  assert.equal(aiSummary(exercise,result,false),result.summary);
-  assert.equal(aiSummary(exercise,{found:1},false),'1 of 1 issues identified.');
+test('presentation respects a different topic selected on the home card',()=>{
+  const config=presentationPractice(['Maintainability'],false,exercises,'Conditions & boundaries');
+  assert.equal(config.topic,'Conditions & boundaries');
+  assert.notEqual(config.exerciseId,'seats-maintainability');
 });

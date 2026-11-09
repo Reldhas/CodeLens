@@ -1,159 +1,279 @@
-import { feedbackForAttempt } from './review-comparison.js';
-import { allReviews } from './features/review-queue/submissions.js';
-import { sampleHistory, sampleLensAttempt } from './features/skill-map/sample-history.js';
-import ThemeSwitch from './ThemeSwitch';
-import './review-feedback.css';
-import { useEffect, useState } from 'react';
-import { Sparkles, ChevronDown, Map, ScanLine, ChevronRight, ArrowLeft, ArrowRight, Check, Plus, X, MessageSquare, BookOpen, BarChart3, FileCode2, CircleHelp, Trash2, Sun, Moon } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import PythonConsole from './PythonConsole';
+import { SlimBar } from './bars';
 import { highlight } from './CodeBlock';
 import DemoFill from './DemoFill';
-import LensFeedback from './LensFeedback';
 import { goodReview, wrongReview } from './lens-demo.js';
 import AnswerFeedback, { type AnswerRating } from './AnswerFeedback';
 import CriterionGuide from './CriterionGuide';
+import LensResult, { ResultCode, scoreText, TaNote } from './LensResult';
+import { feedbackForAttempt } from './review-comparison.js';
+import { sampleHistory, sampleLensAttempt } from './features/skill-map/sample-history.js';
+import { allReviews } from './features/review-queue/submissions.js';
 import ReviewSetup, { type PracticeConfig } from './ReviewSetup';
 import { submissionError, nextPractice, draftForAttempt, attemptAsDraft } from './review-flow.js';
-import { exercises, dimensions, assess, consoleExample } from './model.js';
+import { exercises, dimensions, assess, consoleExample, normalizeComment } from './model.js';
+import { CheckIcon, LensIcon, SparkIcon, TerminalIcon } from './icons';
+import { PanelFooter, ResultChip, WorkArea } from './ui';
+import './lens.css';
 type LiveResult = ReturnType<typeof assess> & { source: 'ai'; summary: string; improvements: string[] };
-type Comment = { id: string; start: number; end: number; dimension: string; claim: string; reasoning: string; fix: string };
+type Comment = { id: string; start: number; end: number; lenses: string[]; text: string; fix: string };
 type Attempt = { id: string; reviewId?: string; exercise: string; date: string; comments: Comment[]; result: ReturnType<typeof assess>; focus?: string[]; randomFocus?: boolean; noIssues?: boolean; justification?: string };
-type Draft = { savedResult?: ReturnType<typeof assess>; sample?: boolean; sampleNote?: string; archived?: boolean; liveResult?: LiveResult; ratings?: { feedback?: AnswerRating; answer?: AnswerRating }; comments: Comment[]; submitted: boolean; exerciseId?: string; topic?: string; focus?: string[]; randomFocus?: boolean; noIssues?: boolean; justification?: string; editor?: { range: number[]; form: typeof empty; editing: string | null } };
-const empty = { claim: '', reasoning: '', fix: '', dimension: 'Efficiency' };
+type Draft = { savedResult?: ReturnType<typeof assess>; sample?: boolean; sampleNote?: string; archived?: boolean; liveResult?: LiveResult; ratings?: { feedback?: AnswerRating; answer?: AnswerRating }; comments: Comment[]; submitted: boolean; exerciseId?: string; topic?: string; focus?: string[]; randomFocus?: boolean; noIssues?: boolean; justification?: string; attemptId?: string; editor?: { range: number[]; form: typeof empty; editing: string | null } };
+const empty = { text: '', fix: '', lenses: [] as string[] };
+// A fresh form starts with the lens already chosen only when there is a single one to choose.
+const freshForm = (lenses: string[]) => ({ ...empty, lenses: lenses.length === 1 ? [...lenses] : [] });
+// Saved drafts from before the merge had claim, reasoning and one lens; turn them into the new form.
+const toForm = (saved: any) => { if (!saved) return null; const c = normalizeComment(saved); return { text: c.text, fix: c.fix, lenses: c.lenses }; };
+export const help = { title: 'How Lens Review works', steps: ['Read the situation and compare the code with the requirements.', 'Click a line, or drag across several lines, to select an issue.', 'Choose the lenses that fail, say what is wrong and why, and propose a fix.', 'Nothing to flag? Tick “I found no issues” and say what you checked.', 'Submit to see your score and feedback on each annotation.'] };
 function readSaved() { try { const s = JSON.parse(localStorage.getItem('codelens-demo-v1') || '{}'); return { drafts: s.drafts || {}, attempts: Array.isArray(s.attempts) ? s.attempts : [], currentReviewId: s.currentReviewId || Object.keys(s.drafts || {})[0] || 'seats' }; } catch { return { drafts: {}, attempts: [], currentReviewId: 'seats' }; } }
-// In the practice shell (onHome set), saved reviews are listed on the home screen, which opens one with openReview.
-// openAttempt opens a submitted attempt (an attempt ID, not a draft ID) on its feedback.
-export default function App({ onHome, onHistoryBack, extraLink, openReview, openAttempt }: { onHome?: () => void; onHistoryBack?: () => void; extraLink?: { label: string; onClick: () => void }; openReview?: string; openAttempt?: string }) {
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    try { return localStorage.getItem('codelens-theme') === 'light' ? 'light' : 'dark'; }
-    catch { return 'dark'; }
-  });
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'light' ? '#f5f7f8' : '#111517');
-    try { localStorage.setItem('codelens-theme', theme); } catch { /* Theme still works for this session. */ }
-  }, [theme]);
+const linesLabel = (a: number, b: number) => a === b ? `Line ${a}` : `Lines ${a}–${b}`;
+
+// Lens Review. params: start (a chosen exercise and lenses), reviewId (open a saved review), attemptId (open a submitted attempt) or setup (choose lenses first).
+export default function App({ onHome, onHistoryBack, params = {} }: { onHome: () => void; onHistoryBack?: () => void; params?: Record<string, any> }) {
   const [initial] = useState(readSaved);
-  const [drafts,setDrafts] = useState<Record<string,Draft>>(initial.drafts);
-  const [attempts,setAttempts] = useState<Attempt[]>(initial.attempts);
-  const [reviewId,setReviewId] = useState(initial.currentReviewId);
-  const [showSetup,setShowSetup] = useState(true);
-  const [viewingHistory,setViewingHistory] = useState(!!openAttempt);
-  const [activeAttemptId,setActiveAttemptId] = useState(openAttempt || '');
-  const [page,setPage] = useState('workspace');
-  const [tab,setTab] = useState('brief');
-  const [range,setRange] = useState<number[]>(initial.drafts[initial.currentReviewId]?.editor?.range || []);
-  const [form,setForm] = useState<typeof empty>(initial.drafts[initial.currentReviewId]?.editor?.form || empty);
-  const [editing,setEditing] = useState<string|null>(initial.drafts[initial.currentReviewId]?.editor?.editing || null);
-  const [live,setLive] = useState(false);
-  const [busy,setBusy] = useState(false);
-  const [authenticated,setAuthenticated] = useState(false);
-  const [provider,setProvider] = useState('the configured AI provider');
-  const [configured,setConfigured] = useState(false);
-  const [password,setPassword] = useState('');
-  const [localAutoLogin,setLocalAutoLogin] = useState(false);
-  useEffect(()=>{ fetch('/api/status').then(r=>r.ok?r.json():null).then(s=>{setConfigured(!!s?.configured);setLocalAutoLogin(!!s?.localAutoLogin);if(s?.provider)setProvider(s.provider);setAuthenticated(!!s?.authenticated);}).catch(()=>{}); },[]);
-  const [error,setError] = useState('');
-  const [storageError,setStorageError] = useState(false);
-  const [showHelp,setShowHelp] = useState(false);
+  const [drafts, setDrafts] = useState<Record<string, Draft>>(initial.drafts);
+  const [attempts, setAttempts] = useState<Attempt[]>(initial.attempts);
+  const [reviewId, setReviewId] = useState(initial.currentReviewId);
+  const [showSetup, setShowSetup] = useState(true);
+  const [tab, setTab] = useState<'annotations' | 'guide' | 'feedback'>('annotations');
+  const [range, setRange] = useState<number[]>([]);
+  const [form, setForm] = useState<typeof empty>(empty);
+  const [editing, setEditing] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [storageError, setStorageError] = useState(false);
+  const dragFrom = useRef<number | null>(null);
+  const [live, setLive] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [configured, setConfigured] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [localAutoLogin, setLocalAutoLogin] = useState(false);
+  const [provider, setProvider] = useState('the configured AI provider');
+  const [password, setPassword] = useState('');
+  useEffect(() => { fetch('/api/status').then(r => r.ok ? r.json() : null).then(s => { setConfigured(!!s?.configured); setLocalAutoLogin(!!s?.localAutoLogin); if (s?.provider) setProvider(s.provider); setAuthenticated(!!s?.authenticated); }).catch(() => {}); }, []);
+  const viewingHistory = !!params.attemptId;
   const draft = drafts[reviewId] || { comments: [], submitted: false };
   const exerciseId = draft.exerciseId || reviewId;
-  const exercise = exercises.find(e=>e.id === exerciseId) || exercises[0];
+  const exercise = exercises.find(e => e.id === exerciseId) || exercises[0];
   const focus = draft.focus || dimensions;
   const allowedFocus = draft.randomFocus ? dimensions : focus;
-  const result = draft.liveResult || draft.savedResult || assess(exercise,draft.comments,{noIssues:!!draft.noIssues,justification:draft.justification||''});
-  useEffect(()=>{ try { localStorage.setItem('codelens-demo-v1',JSON.stringify({ drafts, attempts, currentReviewId: reviewId })); setStorageError(false); } catch { setStorageError(true); } },[drafts,attempts,reviewId]);
-  useEffect(()=>{
-    setDrafts(previous=>{
+  // Random mode: any lens may apply, so one annotation can name several.
+  const multiLens = !!draft.randomFocus;
+  const result = draft.liveResult || draft.savedResult || assess(exercise, draft.comments, { noIssues: !!draft.noIssues, justification: draft.justification || '' });
+  useEffect(() => { try { localStorage.setItem('codelens-demo-v1', JSON.stringify({ drafts, attempts, currentReviewId: reviewId })); setStorageError(false); } catch { setStorageError(true); } }, [drafts, attempts, reviewId]);
+  useEffect(() => {
+    setDrafts(previous => {
       const current = previous[reviewId];
       if (!current || current.submitted) return previous;
       const editor = { range, form, editing };
       if (JSON.stringify(current.editor) === JSON.stringify(editor)) return previous;
       return { ...previous, [reviewId]: { ...current, editor } };
     });
-  },[range,form,editing,reviewId]);
-  function update(next: Draft) { setDrafts(d=>({...d,[reviewId]:next})); }
+  }, [range, form, editing, reviewId]);
+  useEffect(() => {
+    const stop = () => { dragFrom.current = null; };
+    window.addEventListener('mouseup', stop);
+    return () => window.removeEventListener('mouseup', stop);
+  }, []);
+  function update(next: Draft) { setDrafts(d => ({ ...d, [reviewId]: next })); }
   function startReview(config: PracticeConfig) {
-    setViewingHistory(false);setActiveAttemptId('');
     const id = crypto.randomUUID();
-    setDrafts(d=>({...d,[id]:{...config,comments:[],submitted:false,noIssues:false,justification:''}}));
-    setReviewId(id); setShowSetup(false); setPage('workspace'); setTab('brief');
-    setRange([]); setEditing(null); setForm({...empty,dimension:config.randomFocus?dimensions[0]:config.focus[0]}); setError('');
+    setDrafts(d => ({ ...d, [id]: { ...config, comments: [], submitted: false, noIssues: false, justification: '' } }));
+    setReviewId(id); setShowSetup(false); setTab('annotations');
+    setRange([]); setEditing(null); setForm(freshForm(config.randomFocus ? dimensions : config.focus)); setError('');
   }
   function resumeReview(id: string) {
     const saved = drafts[id];
-    setViewingHistory(saved.submitted);setActiveAttemptId(attempts.find(a=>a.reviewId===id)?.id || '');
     setReviewId(id); setShowSetup(false);
-    setRange(saved.submitted?[]:saved.editor?.range || []); setEditing(saved.submitted?null:saved.editor?.editing || null);
-    setForm(saved.editor?.form || {...empty,dimension:saved.focus?.[0] || dimensions[0]});
-    setTab(saved.submitted?'feedback':saved.editor?.range.length?'annotations':'brief'); setError('');
+    setRange(saved.submitted ? [] : saved.editor?.range || []); setEditing(saved.submitted ? null : saved.editor?.editing || null);
+    setForm(toForm(saved.editor?.form) || freshForm(saved.randomFocus ? dimensions : saved.focus || dimensions));
+    setTab(saved.submitted ? 'feedback' : 'annotations'); setError('');
   }
   function showAttempt(id: string) {
-    const attempt = attempts.find(a=>a.id===id) || sampleLensAttempt(id);
+    const attempt: any = attempts.find(a => a.id === id) || sampleLensAttempt(id);
     if (!attempt) return;
-    setViewingHistory(true);setActiveAttemptId(id);
-    const existing = draftForAttempt(attempt, drafts);
-    const key = existing || attempt.id;
-    if (!existing) setDrafts(d=>({...d,[key]:attemptAsDraft(attempt)}));
-    setReviewId(key); setShowSetup(false); setPage('workspace'); setTab('feedback');
-    setRange([]); setEditing(null); setForm({...empty,dimension:attempt.focus?.[0] || dimensions[0]}); setError('');
+    const key = draftForAttempt(attempt, drafts) || attempt.id;
+    if (!drafts[key]) setDrafts(d => ({ ...d, [key]: attemptAsDraft(attempt) as Draft }));
+    setReviewId(key); setShowSetup(false); setTab('feedback');
+    setRange([]); setEditing(null); setForm(freshForm(dimensions)); setError('');
   }
-  useEffect(()=>{ if (openAttempt) showAttempt(openAttempt); else if (openReview && drafts[openReview]) resumeReview(openReview); },[]);
-  function clearEditor() { setRange([]); setEditing(null); setForm({...empty,dimension:allowedFocus[0]}); setError(''); }
-  function selectExercise(_id:string) { setPage('workspace'); setShowSetup(true); }
-  function saveComment(e:React.FormEvent) { e.preventDefault(); if (!form.claim.trim() || !form.reasoning.trim() || !form.fix.trim()) { setError('Complete the claim, reasoning, and proposed fix.'); return; } const comment = { ...form, id: editing || crypto.randomUUID(), start: Math.min(...range), end: Math.max(...range) }; update({...draft,noIssues:false,justification:'',comments: editing ? draft.comments.map(c=>c.id===editing?comment:c) : [...draft.comments,comment]}); clearEditor(); }
-  const requestPayload = { exerciseId, focus, comments: draft.comments.map(({start,end,dimension,claim,reasoning,fix})=>({start,end,dimension,claim,reasoning,fix})), noIssues: !!draft.noIssues, justification: draft.justification || '' };
+  const opened = useRef(false);
+  useEffect(() => {
+    if (opened.current) return; // React may run this twice in development; start only one review.
+    opened.current = true;
+    if (params.attemptId) showAttempt(params.attemptId);
+    else if (params.start) startReview(params.start);
+    else if (params.reviewId && drafts[params.reviewId]) resumeReview(params.reviewId);
+  }, []);
+  function clearEditor() { setRange([]); setEditing(null); setForm(freshForm(allowedFocus)); setError(''); }
+  function saveComment(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.lenses.length || !form.text.trim() || !form.fix.trim()) { setError(!form.lenses.length ? 'Choose the lens that fails here.' : 'Say what is wrong and why, and propose a fix.'); return; }
+    const comment = { ...form, id: editing || crypto.randomUUID(), start: Math.min(...range), end: Math.max(...range) };
+    update({ ...draft, noIssues: false, justification: '', comments: editing ? draft.comments.map(c => c.id === editing ? comment : c) : [...draft.comments, comment] });
+    clearEditor();
+  }
+  const requestPayload = () => ({ exerciseId, focus: allowedFocus, comments: draft.comments.map(normalizeComment).map(({ start, end, lenses, text, fix }: any) => ({ start, end, lenses, text, fix })), noIssues: !!draft.noIssues, justification: draft.justification || '' });
+  // A live review signs in first if needed. If anything fails the draft stays as it was.
   async function submit() {
-    const message = submissionError(draft,range.length>0); if(message){setError(message);return;}
-    if(live&&!configured){setError('Configure the backend to use live AI feedback.');return;}
-    setBusy(true);setError('');window.scrollTo({top:0});
+    const message = submissionError(draft, range.length > 0); if (message) { setError(message); return; }
+    setBusy(true); setError(''); window.scrollTo({ top: 0 });
     try {
-      if(live&&!authenticated){const response=await fetch('/api/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(localAutoLogin?{}:{password})});const value=await response.json();if(!response.ok)throw new Error(value.error||'Sign in to use live review.');setAuthenticated(true);setPassword('');}
-      let completed = result;
-      if(live){const response=await fetch('/api/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(requestPayload),signal:AbortSignal.timeout(50000)});const value=await response.json();if(!response.ok){if(response.status===401)setAuthenticated(false);throw new Error(value.error||'Review failed.');} completed=value.result;}
-      setDrafts(d=>({...d,[reviewId]:{...draft,submitted:true,...(live?{liveResult:completed as LiveResult}:{})}}));
-      const attemptId=crypto.randomUUID();setActiveAttemptId(attemptId);setViewingHistory(false);
-      setAttempts(a=>[...a,{id:attemptId,reviewId,exercise:exerciseId,date:new Date().toISOString(),comments:draft.comments,result:completed,focus:[...focus],randomFocus:draft.randomFocus,noIssues:draft.noIssues,justification:draft.justification}]);
-      clearEditor();setTab('feedback');
-    } catch(e){setError(e instanceof Error?e.message:'AI review failed. Your draft is safe.');}finally{setBusy(false);}
+      const post = (path: string, body: unknown, init: RequestInit = {}) => fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), ...init });
+      if (live && !authenticated) {
+        const response = await post('/api/session', localAutoLogin ? {} : { password });
+        const value = await response.json();
+        if (!response.ok) throw new Error(value.error || 'Sign in to use live review.');
+        setAuthenticated(true); setPassword('');
+      }
+      let completed: any = result;
+      if (live) {
+        const response = await post('/api/review', requestPayload(), { signal: AbortSignal.timeout(50000) });
+        const value = await response.json();
+        if (!response.ok) { if (response.status === 401) setAuthenticated(false); throw new Error(value.error || 'Review failed.'); }
+        completed = value.result;
+      }
+      const attemptId = crypto.randomUUID();
+      update({ ...draft, submitted: true, attemptId, ...(live ? { liveResult: completed as LiveResult } : {}) });
+      setAttempts(a => [...a, { id: attemptId, reviewId, exercise: exerciseId, date: new Date().toISOString(), comments: draft.comments, result: completed, focus: [...focus], randomFocus: draft.randomFocus, noIssues: draft.noIssues, justification: draft.justification }]);
+      clearEditor(); setTab('feedback');
+    } catch (e) { setError(e instanceof Error ? e.message : 'AI review failed. Your draft is safe.'); }
+    finally { setBusy(false); }
   }
-  function nextExercise() { startReview(nextPractice(exercise.id, focus, !!draft.randomFocus)); window.scrollTo({top:0,behavior:'smooth'}); }
-  const taFeedback = feedbackForAttempt(activeAttemptId, allReviews(), sampleHistory);
-  const reviewFeedback = <div className={'feedback-content'+(taFeedback.available?' with-ta-feedback':'')}>
-        <section className="review-score-card" aria-label="Review score">
-          <div className="review-score-heading"><span><Sparkles size={16} aria-hidden="true"/>AI assessment</span><span className="simulated-label">{draft.liveResult?'Live AI':'Simulated'}</span></div>
-          <div className="review-score-value"><strong>{result.total.toFixed(1)}</strong><span>/ 10<small>{draft.liveResult?'AI score':'Demo score'}</small></span></div>
-          <div className="review-score-track" role="meter" aria-label="Review score" aria-valuemin={0} aria-valuemax={10} aria-valuenow={result.total}><span style={{width:(result.total*10)+'%'}}/></div>
-          <p>{draft.randomFocus?'Revealed criteria': 'Review criteria'}<strong>{focus.join(' · ')}</strong></p>
-        </section>
-        <section className="review-score-breakdown" aria-labelledby="score-breakdown-title"><div className="review-section-heading"><h3 id="score-breakdown-title">Score breakdown</h3><span>{Object.keys(result.rubric).length?'4 × 2.5 points':'Conclusion score'}</span></div>
-          {Object.keys(result.rubric).length?<div className="review-rubric-list">{Object.entries(result.rubric).map(([key,value])=><div className="review-rubric-row" key={key}><div><strong>{key==='fix'?'Proposed fix':key.charAt(0).toUpperCase()+key.slice(1)}</strong><span>{({claim:'Identify the issue or support your conclusion.',evidence:'Connect your review to the relevant code.',reasoning:'Explain why it matters against the requirements.',fix:'Propose a suitable change, or justify keeping the code.'} as Record<string,string>)[key]}</span></div><b>{value.toFixed(1)}<small> / 2.5</small></b><div className="track"><span style={{width:(value/2.5*100)+'%'}}/></div></div>)}</div>:<p className="review-empty-rubric">{result.conclusionCorrect?'Correct no-issues conclusion with a justification. Full credit awarded.':'This demo conclusion did not meet the requirements for credit.'} The four annotation criteria do not apply to this demo score.</p>}
-        </section>
-        <section className="ai-review-section" aria-labelledby="ai-review-title"><div className="review-section-heading"><h3 id="ai-review-title"><Sparkles size={17} aria-hidden="true"/>AI review</h3></div>
-          <p className="review-assessment">{draft.liveResult?.summary || draft.sampleNote || (exercise.findings.length===0?(draft.noIssues?'Correct conclusion.':'No issues were present.'):result.found+' of '+exercise.findings.length+' issues identified.')}</p>
-          {draft.liveResult&&draft.liveResult.improvements.length>0&&<div className="review-next-steps"><h4>To strengthen your review</h4><ol>{draft.liveResult.improvements.map((text,i)=><li key={i}>{text}</li>)}</ol></div>}
-          {!draft.liveResult&&<LensFeedback exercise={exercise} comments={draft.comments}/>}
-          <AnswerFeedback target="AI feedback" value={draft.ratings?.feedback} onChange={rating=>update({...draft,ratings:{...draft.ratings,feedback:rating}})}/>
-          <p className="review-assessment-note">{draft.liveResult?'AI feedback can be imperfect. Use the rubric and sample answer to check your understanding.':'Demo feedback uses rules and curated examples.'}</p>
-        </section>
-        {taFeedback.available&&<section className="ta-review-comparison" aria-labelledby="ta-review-title"><div className="review-section-heading"><h3 id="ta-review-title"><BookOpen size={17} aria-hidden="true"/>TA feedback</h3><span className="simulated-label">{taFeedback.sample?'Sample':'Reviewed'}</span></div><div className="ta-comparison-score"><span>TA-reviewed score</span><strong>{(taFeedback.adjustedScore ?? result.total).toFixed(1)}<small> / 10</small></strong></div>{taFeedback.editedSummary?<p className="review-assessment">{taFeedback.editedSummary}</p>:<p className="ta-comparison-status">{taFeedback.adjustedScore!=null?'Your TA adjusted the score.': 'Your TA kept the AI assessment.'}</p>}{taFeedback.comments.map((comment: string,i: number)=><div className="ta-comparison-comment" key={i}><h4>TA comment{taFeedback.comments.length>1?' '+(i+1):''}</h4><p>{comment}</p></div>)}{!taFeedback.comments.length&&<p className="review-assessment">Your TA approved the feedback without adding a comment.</p>}</section>}
-          <div className="review-reference"><div className="review-section-heading"><h4>Model answer</h4><span className="simulated-label">Curated sample</span></div>
-            <div className="reference-findings">{exercise.findings.length===0?<p className="clean-answer">The code meets the requirements. No changes needed.</p>:exercise.findings.map((finding,index)=><article className="answer-finding" key={index}><span className="line-pill">{finding.dimension} · L{finding.start}{finding.end!==finding.start?'–'+finding.end:''}</span><h4>{finding.claim}</h4><p>{finding.reasoning}</p><div className="answer-fix"><strong>Fix</strong><p>{finding.fix}</p></div></article>)}
-            </div><section className="review-reference-code"><h4>{exercise.findings.length?'Corrected code':'Reference code'}</h4><pre className="answer-code">{exercise.reference}</pre></section>
-          </div>
-      </div>;
-  const recent = attempts.filter(a=>Date.now()-new Date(a.date).getTime()<=30*86400000);
-  useEffect(()=>{if(busy || (draft.submitted&&!showSetup&&page==='workspace'))document.getElementById('review-state-title')?.focus();},[busy,draft.submitted,showSetup,page]);
-  return <div className="app-shell">
-    <div className="main-shell"><header className="topbar" {...{inert:busy?'':undefined}}><nav className="breadcrumb-nav" aria-label="Breadcrumb"><span className="breadcrumb">CodeLens</span><ChevronRight size={14}/>{onHome&&<><button onClick={onHome}>Practice</button><ChevronRight size={14}/></>}{page==='workspace'?showSetup?<span aria-current="page">Training criteria</span>:<><button onClick={()=>setShowSetup(true)}>Training criteria</button><ChevronRight size={14}/><span aria-current="page">Lens Review</span><button className="icon-button review-help" aria-label="How Lens Review works" onClick={()=>setShowHelp(true)}><CircleHelp size={16}/></button></>:<span aria-current="page">My progress</span>}</nav><div className="topbar-actions">{extraLink&&<button className="header-link skill-map-button" onClick={extraLink.onClick}><Map size={16} aria-hidden="true"/>{extraLink.label}</button>}<ThemeSwitch theme={theme} onChange={setTheme}/></div></header>
-      <main className={busy?'evaluation-loading-page':page==='workspace'&&!showSetup&&draft.submitted?'review-results-page':page==='workspace'?(showSetup?'setup-page':'review-page'):'progress-page'}>{page==='progress'&&<><button className="progress-back" onClick={()=>{setPage('workspace');setShowSetup(true);}}><ArrowLeft size={17}/>Back to review selection</button><h1 className="progress-heading">My progress</h1></>}
-      {busy?<section className="evaluation-loading" role="status" aria-live="polite"><div className="evaluation-animation" aria-hidden="true"><span/><span/><span/><Sparkles size={28}/></div><p className="eyebrow">Lens Review</p><h1 id="review-state-title" tabIndex={-1}>Evaluating your review</h1><p>Comparing your observations with the code and requirements.</p><div className="evaluation-dots" aria-hidden="true"><i/><i/><i/></div></section>:page==='workspace'&&!showSetup&&draft.submitted?<section className="review-results">{viewingHistory&&<button className="history-results-back" onClick={()=>{if(onHistoryBack)onHistoryBack();else if(onHome)onHome();else setPage('progress');}}><ArrowLeft size={17}/>Back</button>}<header className="results-heading"><div><p className="eyebrow">{draft.sample?'Sample review · ':''}{exercise.title}</p><h1 id="review-state-title" tabIndex={-1}>Your review results</h1></div>{!viewingHistory&&<div className="results-heading-actions"><button className="secondary" onClick={()=>{setShowSetup(true);window.scrollTo({top:0});}}><ArrowLeft size={16}/>Back to criteria selection</button><button className="primary" onClick={nextExercise}>Next exercise<ArrowRight size={17}/></button></div>}</header><div className="results-comparison"><details className="student-review-card"><summary><span className="submission-summary-icon"><MessageSquare size={18} aria-hidden="true"/></span><span className="submission-summary-title"><strong>Your submission</strong><small>{draft.noIssues?'No issues found':draft.comments.length+(draft.comments.length===1?' annotation':' annotations')} · {draft.noIssues?draft.justification:draft.comments.map(c=>c.claim).join(' · ')}</small></span><span className="submission-summary-action">Compare<ChevronDown size={16} aria-hidden="true"/></span></summary><div className="student-review-body"><div className="student-review-notes">{draft.noIssues?<div className="student-conclusion"><span className="submission-verdict"><Check size={16}/>No issues found</span><h3>Your justification</h3><p>{draft.justification}</p></div>:draft.comments.map((comment,i)=><article className="student-annotation" key={comment.id}><div><span className="annotation-index">{i+1}</span><strong>{comment.dimension}</strong><span className="line-pill">L{comment.start}{comment.end!==comment.start?'–'+comment.end:''}</span></div><h3>{comment.claim}</h3><h4>Reasoning</h4><p>{comment.reasoning}</p><h4>Proposed fix</h4><pre>{comment.fix}</pre></article>)}</div><section className="submitted-code"><h3>Exercise code & requirements</h3><ul>{exercise.requirements.map(item=><li key={item}>{item}</li>)}</ul><pre className="answer-code">{exercise.code.join('\n')}</pre></section></div></details><div className="evaluation-results">{reviewFeedback}</div></div>{storageError&&<p role="alert">Your changes could not be saved on this device.</p>}</section>:page==='workspace' ? showSetup ? <><ReviewSetup onStart={startReview}/>{!onHome&&Object.entries(drafts).some(([,d])=>!d.submitted&&!d.archived)&&<details className="saved-reviews"><summary>Saved reviews</summary>{Object.entries(drafts).filter(([,d])=>!d.submitted&&!d.archived).map(([id,d])=><button className="secondary" key={id} onClick={()=>resumeReview(id)}>{exercises.find(e=>e.id===(d.exerciseId||id))?.title || 'Review'} · {d.randomFocus?'Random focus':(d.focus||dimensions).join(', ')} · {d.comments.length} annotations</button>)}</details>}</> : <>
-      <section className="exercise-brief" aria-labelledby="exercise-brief-title"><div><h1 id="exercise-brief-title">{exercise.title}</h1><p>{exercise.brief}</p></div><div><h3>Requirements</h3><ul className="requirements">{exercise.requirements.map(r=><li key={r}><Check size={15}/><span>{r}</span></li>)}</ul></div></section>
-      <div className="workspace"><section className="editor-panel"><div className="editor-tab"><span><FileCode2 size={16}/>{exercise.file}<span className="tiny-dot"/></span><span className="muted">Sample code</span></div><div className="editor-info"><span><ScanLine size={14}/>{draft.submitted?'Submitted':'Select lines to annotate'}</span><span>{exercise.code.length} lines</span></div><div className="code-area" aria-label="Python source code">{exercise.code.map((line,i)=>{const n=i+1;const selected=range.length>0&&n>=Math.min(...range)&&n<=Math.max(...range);const annotated=draft.comments.some(c=>n>=c.start&&n<=c.end);return <button key={i} disabled={draft.submitted||draft.noIssues} className={'code-line '+(selected?'selected ':'')+(annotated?'annotated':'')} aria-label={'Select line '+n+': '+line} aria-pressed={selected} onClick={()=>{if(editing)clearEditor();setRange(r=>r.length===1?[r[0],n]:[n]);setTab('annotations');setError('');}}><span className="line-marker">{annotated?<MessageSquare size={10}/>:null}</span><span className="line-number">{n}</span><code>{highlight(line)||' '}</code></button>})}</div><div className="editor-bottom"><span><span className="python-dot"/>Python 3</span><span>Read-only</span></div><PythonConsole key={reviewId} source={exercise.code.join('\n')} example={consoleExample(exercise)}/></section>
-      <aside className="review-panel"><div className="panel-tabs"><button className={tab==='brief'?'current':''} onClick={()=>setTab('brief')}><BookOpen size={15}/>Review guide</button><button className={tab==='annotations'?'current':''} onClick={()=>setTab('annotations')}><MessageSquare size={15}/>Annotations ({draft.comments.length})</button><button className={tab==='feedback'?'current':''} disabled={!draft.submitted} onClick={()=>setTab('feedback')}><Sparkles size={15}/>Feedback{draft.submitted&&<span className="live-dot"/>}</button></div>
-      {tab==='annotations'&&range.length>0&&!draft.submitted?<form className="annotation-form" onSubmit={saveComment}><div className="section-title"><h3>{editing?'Edit annotation':'Add annotation'}</h3><button type="button" className="icon-button" aria-label="Cancel annotation" onClick={clearEditor}><X size={18}/></button></div><span className="line-pill">Lines {Math.min(...range)}–{Math.max(...range)}</span><label>Focus area<select value={form.dimension} onChange={e=>setForm({...form,dimension:e.target.value})}>{allowedFocus.map(d=><option key={d}>{d}</option>)}</select></label><label>Claim<textarea required placeholder="What is the issue with this code?" value={form.claim} onChange={e=>setForm({...form,claim:e.target.value})}/></label><label>Reasoning<textarea required placeholder="Why does it matter? Use an example or explain the complexity." value={form.reasoning} onChange={e=>setForm({...form,reasoning:e.target.value})}/></label><label>Proposed fix<textarea required placeholder="How would you improve it?" value={form.fix} onChange={e=>setForm({...form,fix:e.target.value})}/></label>{error&&<p role="alert">{error}</p>}<button className="primary" type="submit"><Plus size={16}/>{editing?'Save changes':'Save annotation'}</button></form>:tab==='annotations'?<div className="review-list"><div className="section-title"><h3>Your annotations <span>{draft.comments.length}</span></h3><span>{draft.submitted?'Submitted':''}</span></div>{draft.noIssues?<p className="muted">No issues found selected.</p>:draft.comments.length===0?<div className="empty-annotations"><MessageSquare size={22}/><div><p>Select a line or range to add an annotation.</p></div></div>:draft.comments.map((c,i)=><article className="annotation" key={c.id}><div className="annotation-head"><span className="annotation-index">{i+1}</span><strong>{c.dimension}</strong><span className="line-pill">L{c.start}{c.end!==c.start?'–'+c.end:''}</span>{!draft.submitted&&<div className="annotation-actions"><button onClick={()=>{setEditing(c.id);setRange([c.start,c.end]);setForm({dimension:c.dimension,claim:c.claim,reasoning:c.reasoning,fix:c.fix});}}>Edit</button><button aria-label={'Delete annotation '+(i+1)} onClick={()=>{update({...draft,comments:draft.comments.filter(x=>x.id!==c.id)});if(editing===c.id)clearEditor();}}><Trash2 size={14}/></button></div>}</div><p>{c.claim}</p><details><summary>Reasoning & proposed fix</summary><p>{c.reasoning}</p><code>{c.fix}</code></details></article>)}</div>:tab==='feedback'&&draft.submitted?reviewFeedback:<div className="brief-content"><div className="focus-block"><h3>Your review criteria</h3><CriterionGuide key={reviewId} criteria={allowedFocus}/></div><ol className="review-steps"><li>Check the requirements.</li><li>Annotate issues and suggest fixes.</li><li>Nothing to flag? Choose “No issues found”.</li></ol></div>}
-      </aside></div>{!draft.submitted&&<DemoFill onGood={()=>{update({...draft,...goodReview(exercise)});clearEditor();setTab('annotations');}} onWrong={()=>{update({...draft,...wrongReview(exercise,dimensions)});clearEditor();setTab('annotations');}}/>}{error&&<p role="alert">{error}</p>}{storageError&&<p role="alert">Your changes could not be saved on this device.</p>}<div className="submission-bar"><div className="no-issues-control"><label className="no-issues-choice"><input type="checkbox" checked={!!draft.noIssues} disabled={draft.submitted||draft.comments.length>0||range.length>0} onChange={e=>{update({...draft,noIssues:e.target.checked});setError('');}}/><span>No issues found</span></label>{draft.comments.length>0&&!draft.submitted&&<p>Remove annotations to select.</p>}{range.length>0&&!draft.submitted&&<p>Save or cancel the open annotation.</p>}{draft.noIssues&&<label>Justification<textarea aria-label="No issues justification" required readOnly={draft.submitted} value={draft.justification||''} placeholder="Explain how the code meets the requirements and what you checked." onChange={e=>{update({...draft,justification:e.target.value});setError('');}}/></label>}</div>{draft.submitted?<div className="completed-actions"><button className="secondary" onClick={()=>{setShowSetup(true);window.scrollTo({top:0,behavior:'smooth'});}}><ArrowLeft size={16}/>Back to criteria selection</button><button className="primary" onClick={nextExercise}>Next exercise<ArrowRight size={17}/></button></div>:<div className="review-submit-actions"><label className="live-review-choice"><input type="checkbox" checked={live} disabled={busy} onChange={e=>{setLive(e.target.checked);setError('');}}/>Use live AI feedback</label>{live&&<p className="live-provider-note">{configured?'Sends this review to '+provider+'.':'Live feedback is not configured.'}</p>}{live&&configured&&!authenticated&&!localAutoLogin&&<div className="compact-live-signin"><input type="password" aria-label="Review access password" autoComplete="current-password" placeholder="Review access password" value={password} onChange={e=>setPassword(e.target.value)}/></div>}<button className="primary" disabled={busy||!!submissionError(draft,range.length>0)||(live&&(!configured||(!authenticated&&!localAutoLogin&&!password)))} onClick={submit}>{busy?'Reviewing…':'Submit review'}<ArrowRight size={17}/></button></div>}</div></>:<section className="progress-view"><div className="stat-grid"><article><span>Reviews completed</span><strong>{recent.length}</strong><small>Last 30 days</small></article><article><span>Average review score</span><strong>{recent.length?(recent.reduce((s,a)=>s+a.result.total,0)/recent.length).toFixed(1):'—'}<small> / 10</small></strong><small>AI and demo assessments</small></article><article><span>Annotations written</span><strong>{recent.reduce((s,a)=>s+a.comments.length,0)}</strong><small>Last 30 days</small></article></div><div className="progress-card"><h2>Review history</h2><p className="muted">Practice recorded on this browser in the last 30 days.</p>{!recent.length?<div className="progress-empty"><ScanLine size={32}/><h3>No reviews yet.</h3><p>Complete a review to see your progress.</p><button className="primary" onClick={()=>{setPage('workspace');setShowSetup(true);}}>Start reviewing<ArrowRight size={16}/></button></div>:recent.slice().reverse().map(a=><details className="history-item" key={a.id}><summary><FileCode2 size={20}/><span><strong>{exercises.find(e=>e.id===a.exercise)?.title}</strong><small>{new Date(a.date).toLocaleString()} · {a.comments.length} annotations</small></span><b>{a.result.total.toFixed(1)} / 10</b></summary>{a.noIssues&&<div className="history-comment"><strong>No issues found</strong><p>{a.justification}</p></div>}{a.comments.map(c=><div className="history-comment" key={c.id}><strong>{c.dimension} · L{c.start}–{c.end}</strong><p>{c.claim}</p><p>{c.reasoning}</p><code>{c.fix}</code></div>)}</details>)}</div></section>}
-      {!busy&&!(draft.submitted&&!showSetup&&page==='workspace')&&<footer><span>Sample exercises · Live AI or simulated grading</span></footer>}</main></div>
-      {showHelp&&<div className="modal-backdrop" onClick={()=>setShowHelp(false)}><section className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onClick={e=>e.stopPropagation()}><button autoFocus className="icon-button close-modal" aria-label="Close help" onClick={()=>setShowHelp(false)}><X/></button><h2 id="help-title">How to review</h2><ol><li>Read the brief and compare the code with the requirements.</li><li>Select the first and last lines of an issue.</li><li>Choose a focus and explain your claim, reasoning, and fix.</li><li>Save your annotations and submit to see the scoring breakdown.</li></ol><p>CodeLens uses sample material. Lens Review supports optional live AI feedback through the backend; other activities use deterministic feedback. The Python console executes locally in your browser; no API key or account is required.</p><button className="primary" onClick={()=>setShowHelp(false)}>Got it<Check size={16}/></button></section></div>}
+  function nextExercise() { startReview(nextPractice(exercise.id, focus, !!draft.randomFocus)); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  function pickLine(n: number, e: React.MouseEvent) {
+    if (draft.submitted || draft.noIssues) return;
+    if (editing) clearEditor();
+    setError(''); setTab('annotations');
+    if (e.detail === 0) { setRange(r => r.length === 1 ? [r[0], n] : [n]); return; } // keyboard: two presses make a range
+    if (e.shiftKey && range.length) { setRange([range[0], n]); return; }
+    dragFrom.current = n; setRange([n]);
+  }
+
+  // Dragging across lines extends the selection to the line under the pointer.
+  function dragOver(e: React.MouseEvent) {
+    if (dragFrom.current === null) return;
+    const n = Number((e.target as HTMLElement).closest('[data-line]')?.getAttribute('data-line'));
+    const from = dragFrom.current;
+    if (n) setRange(r => r[0] === from && r.at(-1) === n ? r : [from, n]);
+  }
+
+  if (showSetup) return <>
+    <SlimBar title="Lens Review" meta="Choose your lenses" onExit={onHome} help={help} leave={null}/>
+    <ReviewSetup onStart={startReview} initialFocus={params.focus} topic={params.topic}/>
+  </>;
+
+  if (busy) return <>
+    <SlimBar title="Lens Review" meta="Evaluating" leave={null}/>
+    <section className="sheet center-sheet lr-evaluating" role="status" aria-live="polite"><span className="tile big" aria-hidden="true"><SparkIcon size={24}/></span><h2>Evaluating your review</h2><p>Comparing your annotations with the code and requirements.</p></section>
+  </>;
+
+  const lo = range.length ? Math.min(...range) : 0, hi = range.length ? Math.max(...range) : 0;
+  const rows = exercise.code.map((line, i) => {
+    const n = i + 1;
+    const annotated = draft.comments.some(c => n >= c.start && n <= c.end);
+    // Press anywhere on a line (number or code) to start; drag to extend. The number button serves the keyboard.
+    return <div key={n} data-line={n} className={'lr-line' + (annotated ? ' annotated' : '') + (n >= lo && n <= hi ? ' selected' : '') + (draft.submitted || draft.noIssues ? '' : ' pickable')}
+      onMouseDown={e => { if (e.button === 0) { e.preventDefault(); pickLine(n, e); } }}>
+      <button type="button" className="lr-ln" disabled={draft.submitted || draft.noIssues} aria-label={`Select line ${n}`} aria-pressed={n >= lo && n <= hi} onClick={e => { if (e.detail === 0) pickLine(n, e); }}>{n}</button>
+      <code>{highlight(line) || ' '}</code>
+    </div>;
+  });
+  // The selected lines sit inside one frame with viewfinder corners.
+  const code = range.length ? [...rows.slice(0, lo - 1), <div key="sel" className="lr-sel"><span aria-hidden="true" className="sel-c tl"/><span aria-hidden="true" className="sel-c tr"/><span aria-hidden="true" className="sel-c bl"/><span aria-hidden="true" className="sel-c br"/>{rows.slice(lo - 1, hi)}</div>, ...rows.slice(hi)] : rows;
+  const tabs = <div role="tablist" aria-label="Review panel" className="lr-tabs">
+    <button role="tab" aria-selected={tab === 'annotations'} onClick={() => setTab('annotations')}>{draft.submitted ? 'Your annotations' : 'Annotations'} {!draft.submitted && draft.comments.length > 0 && <span className="count-badge">{draft.comments.length}</span>}</button>
+    <button role="tab" aria-selected={tab === 'guide'} onClick={() => setTab('guide')}>Review guide</button>
+    <button role="tab" aria-selected={tab === 'feedback'} onClick={() => setTab('feedback')}>Feedback</button>
   </div>;
+  const saved = draft.comments.map(normalizeComment).map((c, i) => <article key={c.id} className="saved-note">
+    <div className="note-head"><span className="lines">{linesLabel(c.start, c.end)}</span>{c.lenses.map((l: string) => <span key={l} className="lens-tag">{l}</span>)}
+      {!draft.submitted && <span className="saved-actions"><button className="text-link" onClick={() => { setEditing(c.id); setRange([c.start, c.end]); setForm({ lenses: c.lenses, text: c.text, fix: c.fix }); }}>Edit</button>
+        <button className="icon-btn" aria-label={'Delete annotation ' + (i + 1)} onClick={() => { update({ ...draft, comments: draft.comments.filter(x => x.id !== c.id) }); if (editing === c.id) clearEditor(); }}><Trash2 size={15} strokeWidth={1.8}/></button></span>}
+    </div>
+    <p>{c.text}</p>
+    <p className="fix-line"><strong>Fix</strong><span>{c.fix}</span></p>
+  </article>);
+  const guide = <section className="panel-in lr-guide">
+    <div><h2 className="panel-title">Your lenses</h2>
+      {draft.randomFocus && !draft.submitted ? <p className="muted-text">Random. Any of the four lenses may apply here. You will see which ones after you submit.</p> : <CriterionGuide key={reviewId} criteria={allowedFocus}/>}</div>
+    <ol><li>Read the requirements.</li><li>Select lines that break one and explain why.</li><li>Suggest a fix for each.</li><li>Nothing to flag? Tick “I found no issues”.</li></ol>
+  </section>;
+
+  const ta = feedbackForAttempt(params.attemptId || draft.attemptId || '', allReviews(), sampleHistory);
+  const leaveResult = viewingHistory && onHistoryBack ? onHistoryBack : onHome;
+  if (draft.submitted) return <>
+    <SlimBar title={exercise.title} meta={`Lens Review, ${exercise.topic.replace(' & ', ' and ').toLowerCase()}, submitted`} onExit={leaveResult} exitLabel={viewingHistory ? 'Skill map' : undefined} help={help} leave={null} aside={<ResultChip value={result.total / 10}>{scoreText(result.total)}</ResultChip>}/>
+    <WorkArea>
+      <section className="sheet work-main" aria-label="Exercise and code"><Brief exercise={exercise}/><ResultCode exercise={exercise} comments={draft.comments}/></section>
+      <aside className="sheet work-side" aria-label="Your review">
+        {tabs}
+        <div className="work-side-body">
+          {tab === 'feedback' ? <LensResult exercise={exercise} comments={draft.comments} result={result} noIssues={draft.noIssues} justification={draft.justification} focus={allowedFocus} note={draft.sampleNote}
+            taScore={ta.adjustedScore} ta={ta.available ? <TaNote comments={ta.comments}/> : undefined}
+            rating={<AnswerFeedback target="AI feedback" value={draft.ratings?.feedback} onChange={rating => update({ ...draft, ratings: { ...draft.ratings, feedback: rating } })}/>}/>
+            : tab === 'guide' ? guide : <section className="lr-saved">{draft.noIssues ? <article className="saved-note"><div className="note-head"><span className="lens-tag">No issues found</span></div><p>{draft.justification}</p></article> : saved}</section>}
+        </div>
+        <PanelFooter>{viewingHistory ? <button className="btn btn-outline" onClick={leaveResult}>Back to Skill map</button> : <><button className="btn btn-outline" onClick={onHome}>Back to Practice</button><button className="btn btn-primary" onClick={nextExercise}>Next Lens Review</button></>}</PanelFooter>
+      </aside>
+    </WorkArea>
+  </>;
+
+  const blocked = submissionError(draft, range.length > 0) || (live && !authenticated && !localAutoLogin && !password ? 'Enter the review access password to use live AI.' : '');
+  return <>
+    <SlimBar title={exercise.title} meta={`Lens Review, ${exercise.topic.replace(' & ', ' and ').toLowerCase()}${storageError ? ', not saved' : ''}`} onExit={onHome} help={help}/>
+    <WorkArea>
+      <section className="sheet work-main" aria-label="Exercise and code">
+        <Brief exercise={exercise}/>
+        <div className="code-card">
+          <div className="code-card-head"><span className="lr-instruction"><span className="lr-icon" aria-hidden="true"><LensIcon size={15}/></span>{draft.noIssues ? 'You marked this code as having no issues.' : 'Click a line, or drag across several lines, to add an annotation.'}</span><span className="mono muted-mono">{exercise.file}</span></div>
+          <div className="code-lines lr-code" aria-label="Python source code" onMouseMove={dragOver} onMouseUp={dragOver}>{code}</div>
+          <details className="lr-terminal"><summary><TerminalIcon size={16}/>Terminal<span>Run the code to test your ideas</span></summary><PythonConsole key={reviewId} source={exercise.code.join('\n')} example={consoleExample(exercise)}/></details>
+        </div>
+      </section>
+      <aside className="sheet work-side" aria-label="Your review">
+        {tabs}
+        <div className="work-side-body">
+          {tab === 'annotations' ? <>
+            {range.length > 0 && <form className="lr-form panel-in" onSubmit={saveComment}>
+              <div className="row-between"><h2 className="panel-title">{editing ? 'Edit annotation' : 'New annotation'}</h2><span className="lines">{linesLabel(lo, hi)}</span></div>
+              <fieldset className="lens-pick"><legend>{multiLens ? '1. Which lenses fail here? Choose one or more.' : '1. Which lens fails here?'}</legend><div>
+                {allowedFocus.map(d => { const on = form.lenses.includes(d); return <button type="button" key={d} className="chip-toggle" aria-pressed={on} onClick={() => { setError(''); setForm({ ...form, lenses: multiLens ? (on ? form.lenses.filter(l => l !== d) : [...form.lenses, d]) : [d] }); }}>{on && <CheckIcon/>}{d}</button>; })}
+              </div></fieldset>
+              <label className="field">2. What’s wrong, and why?<textarea rows={4} maxLength={8000} placeholder="Describe the problem and why it matters." value={form.text} onChange={e => setForm({ ...form, text: e.target.value })}/></label>
+              <label className="field">3. Proposed fix<textarea rows={2} maxLength={4000} placeholder="How would you change the code?" value={form.fix} onChange={e => setForm({ ...form, fix: e.target.value })}/></label>
+              {error && <p className="error-text" role="alert">{error}</p>}
+              <div className="lr-form-actions"><button type="button" className="btn btn-outline btn-sm" onClick={clearEditor}>Cancel</button><button type="submit" className="btn btn-primary btn-sm">{editing ? 'Save changes' : 'Save annotation'}</button></div>
+            </form>}
+            {draft.comments.length > 0 ? <section className="lr-saved" aria-labelledby="saved-title"><h3 id="saved-title" className="small-title">Saved annotations</h3>{saved}</section>
+              : !range.length && <p className="muted-text">{draft.noIssues ? 'You ticked “I found no issues”. Untick it to annotate lines.' : 'No annotations yet. Select a line in the code to start one.'}</p>}
+            <DemoFill onGood={() => { update({ ...draft, ...goodReview(exercise) }); clearEditor(); }} onWrong={() => { update({ ...draft, ...wrongReview(exercise, dimensions) }); clearEditor(); }}/>
+          </> : tab === 'guide' ? guide : <section className="panel-in lr-empty"><span className="tile big" aria-hidden="true"><SparkIcon size={22}/></span><h2 className="panel-title">Your feedback appears here</h2><p className="muted-text">Submit your review to see your score and feedback on each annotation.</p></section>}
+        </div>
+        <footer className="panel-footer lr-footer">
+          <label className="lr-noissues"><input type="checkbox" checked={!!draft.noIssues} disabled={draft.comments.length > 0 || range.length > 0} onChange={e => { update({ ...draft, noIssues: e.target.checked }); setError(''); }}/>I found no issues in this code</label>
+          {draft.comments.length > 0 && <span className="muted-text">Remove your annotations to choose this.</span>}
+          {draft.noIssues && <label className="field">What did you check?<textarea aria-label="No issues justification" value={draft.justification || ''} placeholder="Explain how the code meets the requirements and what you checked." onChange={e => { update({ ...draft, justification: e.target.value }); setError(''); }}/></label>}
+          {configured && <label className="lr-noissues"><input type="checkbox" checked={live} onChange={e => { setLive(e.target.checked); setError(''); }}/>Use live AI feedback</label>}
+          {live && <span className="muted-text">Sends this review to {provider}.</span>}
+          {live && !authenticated && !localAutoLogin && <label className="field">Review access password<input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)}/></label>}
+          {error && !range.length && <p className="error-text" role="alert">{error}</p>}
+          <div className="row-between lr-submit"><span className="panel-footer-note">{draft.noIssues ? 'No issues found' : `${draft.comments.length} ${draft.comments.length === 1 ? 'annotation' : 'annotations'} saved`}</span>
+            <button className="btn btn-primary" disabled={!!blocked} title={blocked || undefined} onClick={submit}>Submit review</button></div>
+          {range.length > 0 && <span className="muted-text">Save or cancel the open annotation before submitting.</span>}
+        </footer>
+      </aside>
+    </WorkArea>
+  </>;
+}
+
+export function Brief({ exercise }: { exercise: any }) {
+  return <>
+    <h2 className="work-prompt">Check the proposed code against the requirements.</h2>
+    <div className="lr-brief">
+      <div><h3 className="small-title">The situation</h3><p>{exercise.brief}</p></div>
+      <div><h3 className="small-title">Requirements</h3><ul>{exercise.requirements.map((r: string) => <li key={r}><CheckIcon className=""/>{r}</li>)}</ul></div>
+    </div>
+  </>;
 }

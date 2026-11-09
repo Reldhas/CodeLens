@@ -106,7 +106,8 @@ test('next random exercise keeps random mode',()=>{
 
 test('a realistic review of each Appropriateness and Maintainability exercise earns full marks',()=>{
   const reviews={
-    'seats-maintainability': ['A mutable default argument creates shared cache state that leaks memory across requests.', 'Use cache=None or functools.lru_cache.'],
+    'login-maintainability': ['A mutable default argument creates shared state that leaks memory across requests.', 'Use attempts=None or a dedicated class.'],
+    'seats-maintainability': ['A mutable default argument creates shared state that leaks memory across requests.', 'Use attempts=None or a dedicated class.'],
     'seats-appropriateness-bisect': ['Sorting the list and using binary search is more machinery than this question needs here.', 'Use a set and not in.'],
     'seats-appropriateness-exceptions':['The code catches a KeyError to detect a free seat, which is a normal outcome here.','Check not in a set.'],
     'seats-maintainability-flag':['The as_text flag makes this one function do two things and return different types.','Split formatting into its own function.'],

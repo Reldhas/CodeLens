@@ -9,7 +9,7 @@ test('presentation is explicit and repeatedly selects the same real maintainabil
   assert.equal(isPresentation('?presentation=maintainability'),true);
   for(let i=0;i<10;i++){
     const config=presentationPractice(['Maintainability'],false,exercises);
-    assert.equal(config.exerciseId,'seats-maintainability');
+    assert.equal(config.exerciseId,'login-maintainability');
     assert.deepEqual(config.focus,['Maintainability']);assert.equal(config.randomFocus,false);
     assert.ok(exercises.find(e=>e.id===config.exerciseId).findings.every(f=>config.focus.includes(f.dimension)));
   }
@@ -25,5 +25,5 @@ test('presentation respects other selected criteria rather than mislabeling them
 test('presentation respects a different topic selected on the home card',()=>{
   const config=presentationPractice(['Maintainability'],false,exercises,'Conditions & boundaries');
   assert.equal(config.topic,'Conditions & boundaries');
-  assert.notEqual(config.exerciseId,'seats-maintainability');
+  assert.notEqual(config.exerciseId,'login-maintainability');
 });

@@ -2,11 +2,42 @@
 export function additionalSamples([seats, discount]) {
   const cleanSeats = { ...seats, id: 'seats-clean', code: seats.reference.split('\n'), findings: [] };
   const cleanDiscount = { ...discount, id: 'discount-clean', code: discount.reference.split('\n'), findings: [] };
+  const loginLimiter = {
+    id: 'login-maintainability',
+    title: 'Login attempt tracker',
+    file: 'login_limiter.py',
+    topic: 'Lists & membership',
+    brief: 'A campus portal service tracks recent failed login timestamps to rate-limit repeated password attempts. Review the proposed helper before it is deployed to the auth service.',
+    requirements: [
+      'Record each attempt timestamp for the specified user.',
+      'Keep only attempt timestamps that occurred within the 60-second sliding window.',
+      'Return True if the user exceeded 3 attempts within the window, False otherwise.',
+      'Keep the attempt tracker stateless so calls do not share mutable state or leak memory across requests.',
+    ],
+    code: [
+      'def record_attempt(user_id, timestamp, attempts={}):',
+      '    """Track attempt timestamps and flag if rate limit exceeded."""',
+      '    user_history = attempts.setdefault(user_id, [])',
+      '    user_history.append(timestamp)',
+      '    recent = [t for t in user_history if timestamp - t <= 60]',
+      '    attempts[user_id] = recent',
+      '    return len(recent) > 3',
+    ],
+    findings: [{
+      dimension: 'Maintainability',
+      start: 1,
+      end: 6,
+      keywords: ['attempts', 'cache', 'default', 'mutable', 'shared', 'leak', 'persist', 'state', 'isolation', 'dict', 'global', 'unbounded'],
+      fixes: ['none', 'class', 'explicit', 'parameter', 'remove default', 'decorator', 'initialize', 'session'],
+      claim: 'A mutable default argument (attempts={}) creates hidden shared state across all function calls.',
+      reasoning: 'In Python, default arguments are evaluated once at definition time. Reusing attempts={} across requests causes an unbounded memory leak on a server and leaks state between different users and test cases.',
+      fix: 'Use attempts=None and initialize with if attempts is None: attempts = {} inside the function, or manage state in a dedicated RateLimiter class.',
+    }],
+    reference: 'def record_attempt(user_id, timestamp, attempts=None):\n    if attempts is None:\n        attempts = {}\n    user_history = attempts.setdefault(user_id, [])\n    user_history.append(timestamp)\n    recent = [t for t in user_history if timestamp - t <= 60]\n    attempts[user_id] = recent\n    return len(recent) > 3',
+  };
   return [cleanSeats, cleanDiscount,
-    { ...cleanSeats, id: 'seats-maintainability',
-      requirements: [...seats.requirements, 'Keep the seat lookup stateless so calls do not share mutable state or leak memory across requests.'],
-      code: ['def available_seats(booked, requested, cache={}):', '    """Return available seats, caching lookup sets for speed."""', '    key = tuple(booked)', '    if key not in cache:', '        cache[key] = set(booked)', '    return [seat for seat in requested if seat not in cache[key]]'],
-      findings: [{ dimension: 'Maintainability', start: 1, end: 5, keywords: ['cache', 'default', 'mutable', 'shared', 'leak', 'persist', 'state', 'isolation', 'memoiz', 'unbounded'], fixes: ['none', 'lru_cache', 'class', 'remove cache', 'explicit', 'decorator', 'functools', 'clear'], claim: 'A mutable default argument (cache={}) creates hidden shared state across calls.', reasoning: 'In Python, default arguments are evaluated once at function definition. Reusing cache={} across calls causes an unbounded memory leak in a server and leaks state between requests and tests.', fix: 'Use cache=None and initialize inside the function, use functools.lru_cache, or remove the default cache.' }] },
+    loginLimiter,
+    { ...loginLimiter, id: 'seats-maintainability' },
     { ...cleanDiscount, id: 'discount-maintainability',
       requirements: [...discount.requirements, 'Give the discount threshold and rate named constants so pricing rules are easy to change.'],
       findings: [{ dimension: 'Maintainability', start: 4, end: 5, keywords: ['constant', 'magic', 'literal', '100', '0.9', 'name'], fixes: ['constant', 'threshold', 'rate'], claim: 'The threshold and discount multiplier are unexplained numeric literals.', reasoning: 'The numeric values implement the current rule correctly, but changing the pricing policy is clearer when the threshold and rate are named in one place.', fix: 'Introduce DISCOUNT_THRESHOLD = 100 and DISCOUNT_RATE = 0.10, then use those constants.' }],

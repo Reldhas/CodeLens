@@ -7,6 +7,7 @@ export const exercises = [
 exercises.push(...additionalSamples(exercises));
 
 export function consoleExample(exercise) {
+  if (exercise.file === 'login_limiter.py') return "print(record_attempt('alice', 100.0))";
   return exercise.file === 'seat_checker.py'
     ? "print(available_seats(['A1', 'A2'], ['A2', 'A3', 'B1']))"
     : 'print(discounted_total(100))';

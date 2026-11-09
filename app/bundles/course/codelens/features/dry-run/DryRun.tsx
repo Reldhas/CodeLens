@@ -4,6 +4,7 @@ import { SlimBar } from '../../bars';
 import GeneratingScreen, { type Difficulty } from '../../GeneratingScreen';
 import type { ScreenProps } from '../../features';
 import { approvedItems, eligibleForTopic, pickItems, readCourse, topicName } from '../../course.js';
+import { isPresentation, presentationDryRun } from '../../presentation.js';
 import { SparkIcon, TerminalIcon } from '../../icons';
 import { createAttempt, getAttempt, listAttempts, updateAttempt } from '../../practice-log.js';
 import DemoFill from '../../DemoFill';
@@ -20,7 +21,8 @@ export default function DryRunScreen({ params, go }: ScreenProps) {
   const [error, setError] = useState('');
   function start(difficulty: Difficulty) {
     const done = listAttempts('dry-run').flatMap((a: any) => a.exerciseIds);
-    const [question] = pickItems(eligibleForTopic(approvedItems('dry-run', questions), difficulty, readCourse().publishedTopics, params.topicId), 1, done);
+    const eligible = eligibleForTopic(approvedItems('dry-run', questions), difficulty, readCourse().publishedTopics, params.topicId);
+    const [question] = isPresentation() ? [presentationDryRun(eligible)] : pickItems(eligible, 1, done);
     if (!question) { setError('Your TA is preparing this: nothing is approved and published at this difficulty yet.'); return; }
     setAttemptId(createAttempt({ function: 'dry-run', title: question.title, difficulty, topicId: question.topicId, exerciseIds: [question.id], fromSuggestion: !!params.fromSuggestion }).id);
   }

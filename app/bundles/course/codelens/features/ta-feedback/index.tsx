@@ -12,7 +12,36 @@ import { allReviews, allSubmissions, demoStudent } from '../review-queue/submiss
 const mine = () => allSubmissions().filter(s => s.student === demoStudent);
 const titleOf = (exercise: string) => exercises.find(e => e.id === exercise)?.title;
 const stampOf = (id: string, sent: number) => id + ':' + sent;
-function markSeen(stamp: string) { const ta = readTa(); if (!ta.seen.includes(stamp)) writeTa({ ...ta, seen: [...ta.seen, stamp] }); }
+export function markSeen(stamp: string) { const ta = readTa(); if (!ta.seen.includes(stamp)) writeTa({ ...ta, seen: [...ta.seen, stamp] }); }
+
+export type TaAnnouncement = {
+  attemptId: string;
+  stamp: string;
+  title: string;
+  comment: string;
+  score: number | null;
+  markRead: () => void;
+};
+
+export function unreadTaFeedback(): TaAnnouncement[] {
+  const reviews = allReviews();
+  const seen = readTa().seen || [];
+  return mine().flatMap(s => {
+    const feedback = taFeedbackFor(reviews.filter((r: any) => r.attemptId === s.id));
+    const sent = feedback.sent.length;
+    if (!sent) return [];
+    const stamp = stampOf(s.id, sent);
+    if (seen.includes(stamp)) return [];
+    return [{
+      attemptId: s.id,
+      stamp,
+      title: titleOf(s.exercise) || 'Lens Review',
+      comment: feedback.comments[feedback.comments.length - 1] || 'Your TA reviewed and approved your submission.',
+      score: feedback.adjustedScore,
+      markRead: () => markSeen(stamp),
+    }];
+  });
+}
 
 // One bell notification per review with TA feedback the student hasn't opened yet. It opens the review at the comment.
 function notifications(): Note[] {

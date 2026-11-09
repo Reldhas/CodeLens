@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { ChevronDown, Trash2 } from 'lucide-react';
+import { ChevronDown, MessageSquare, Trash2, X } from 'lucide-react';
 import { features, type ScreenProps } from './features';
 import { approvedItems, availableTopics, difficulties, functionNames, isUnlocked, label, readCourse, topicName } from './course.js';
 import { Brackets, ConceptIcon, DryRunIcon, LensIcon, ResumeIcon } from './icons';
 import { exercises, normalizeComment } from './model.js';
 import { reviewTopics } from './review-flow.js';
 import { lastDifficulty, lensReviewData, listAttempts, setDraftArchived } from './practice-log.js';
+import { unreadTaFeedback } from './features/ta-feedback/index';
 import { loadSkillMap, ResultsList } from './features/skill-map/SkillMap';
 import { practiseParams } from './features/skill-map/skills.js';
 import { pct, ScoreBar, scorePoints } from './ui';
@@ -71,9 +72,29 @@ export default function StudentHome({ go, has }: ScreenProps) {
     }),
   ];
   const recent = [...map.recent].sort((a: any, b: any) => b.date.localeCompare(a.date)).slice(0, 4);
+  const taAnnouncements = unreadTaFeedback();
 
   return <>
     <h1 className="page-title">Practice</h1>
+    {taAnnouncements.map(ann => (
+      <aside key={ann.stamp} className="ta-announcement-banner" role="status" aria-live="polite">
+        <div className="ta-announcement-content">
+          <span className="ta-announcement-icon" aria-hidden="true"><MessageSquare size={17} strokeWidth={2}/></span>
+          <div className="ta-announcement-text">
+            <strong>New TA feedback on your review of {ann.title}</strong>
+            <p>{ann.comment}</p>
+          </div>
+        </div>
+        <div className="ta-announcement-actions">
+          <button className="btn btn-primary btn-sm" onClick={() => { ann.markRead(); go('ta-feedback', { attemptId: ann.attemptId, comment: true }); }}>
+            View feedback
+          </button>
+          <button className="icon-btn" aria-label="Dismiss announcement" onClick={() => { ann.markRead(); refresh(n => n + 1); }}>
+            <X size={16} strokeWidth={2}/>
+          </button>
+        </div>
+      </aside>
+    ))}
     {focus && <section className="focus-card" aria-labelledby="focus-title">
       <div className="focus-head"><h2 id="focus-title" className="section-title-lg">Recommended for you</h2>{has('skill-map') && <button className="text-link" onClick={() => go('skill-map')}>See Skill map</button>}</div>
       <div className="focus-body">

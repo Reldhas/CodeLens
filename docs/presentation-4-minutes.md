@@ -4,7 +4,7 @@ Updated for the dev UX redesign (bf807c2). Start after a 30-second introduction;
 
 ## Preparation
 
-Open the presentation deployment with `?presentation=maintainability`, without `?demo`. Navigate normally from Practice. The query fixes exercise selection only; it does not seed answers, scores, or TA decisions. The home card must use Any topic or Lists & membership, and the student must explicitly select only Maintainability. Other topics and lenses keep their normal selection behavior.
+Open the presentation deployment with `?presentation=true`, without `?demo`. Navigate normally from Practice. The query fixes exercise selection only; it does not seed answers, scores, or TA decisions. The home card must use Any topic or Lists & membership, and the student must explicitly select only Maintainability. Other topics and lenses keep their normal selection behavior. Fixed exercises are also provided for Dry Run (`Cinema ticket price`) and Concept Match in case they are opened during the demo.
 
 In Content Studio, ensure the Login attempt tracker Maintainability variant is approved before rehearsal. The fixed flow will report an error rather than bypass approval. Use the same browser and origin for student and TA, since this prototype saves feedback locally. Verify live AI sign-in/configuration before presenting. Rehearse on a separate attempt and keep its results accessible through normal history as a fallback.
 
@@ -17,7 +17,7 @@ In Content Studio, ensure the Login attempt tracker Maintainability variant is a
 | 1:20-1:55 | Result: point to the score, lenses practised, highlighted code and live feedback. Expand How this was scored briefly. | The assessment evaluates the review. Found/missed highlighting is checked against the curated answer key; the live model supplies the score and feedback. |
 | 1:55-2:45 | Back to Practice -> TA -> Review Queue. Select Review on the matching Demo student / Login attempt tracker submission, checking title and time. Read the saved live assessment. Enter the TA comment below; optionally enter Your score. Approve and send. Use Back to Review Queue if it automatically opens the next submission. | The TA adds their own judgement alongside the AI assessment; they do not rewrite the AI response. |
 | 2:45-3:15 | Class Insights: show the lens breakdown, common gaps and students needing support. | These sample class insights help a TA prioritise support. |
-| 3:15-3:40 | Switch Student to return to Practice. Open the notification bell and the new Your TA commented notification. | The notification opens the same review layout, focused on the TA comment above the AI feedback. The TA score appears alongside the AI score if supplied. |
+| 3:15-3:40 | Switch Student to return to Practice. Notice the new TA feedback announcement banner on home (or the notification bell in the topbar). Click View feedback. | The student immediately sees the TA announcement banner and opens the review layout, focused on the TA comment above the AI feedback. The TA score appears alongside the AI score if supplied. |
 | 3:40-4:00 | Back to Practice -> Skill Map. Show the weakest lens/topic and recommended next practice. | Feedback becomes a next step. The prototype map includes sample history. |
 
 Do not use fill-answer shortcuts or direct result links. Do not spend time finishing a Dry Run or Concept Match set. Their level and topic setup now lives on home, so the older separate setup-screen narration no longer applies.

@@ -30,7 +30,7 @@ export default function ReviewQueue({ go }: ScreenProps) {
   const count = (f: string) => f === 'all' ? queue.length : queue.filter(i => i.status === f).length;
   return <>
     <div className="page-head">
-      <div><h1 className="page-title">Review Queue</h1><p className="page-lede">Lens Review submissions with AI feedback waiting for your check. Flagged ones come first.</p></div>
+      <div><h1 className="page-title">Review Queue</h1><p className="page-lede">Lens Review submissions with AI feedback waiting for your check. Newest submissions come first.</p></div>
       {next && <button className="btn btn-primary" onClick={() => go('ta-review', { id: next.submission.id })}>Review next submission</button>}
     </div>
     <div className="queue-bar">

@@ -56,7 +56,7 @@ The TA form now has Yes/No feedback quality, Your feedback, and an optional Your
 
 ## Recovery and closing
 
-Submit by 1:20 and enter TA review by 1:55. If live evaluation is slow, explicitly introduce the completed rehearsal result, return through Practice and open it from Recent results or Skill Map. Review that same attempt in the TA queue; flagged items may sort ahead of newer submissions.
+Submit by 1:20 and enter TA review by 1:55. If live evaluation is slow, explicitly introduce the completed rehearsal result, return through Practice and open it from Recent results or Skill Map. Review that same attempt in the TA queue; it appears at the top of the queue as the newest submission.
 
 If behind, skip opening How this was scored and shorten the other-practice preview. Keep TA review, the notification and Class Insights.
 

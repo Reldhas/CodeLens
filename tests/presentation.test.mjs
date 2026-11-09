@@ -3,18 +3,26 @@ import assert from 'node:assert/strict';
 import { isPresentation, presentationPractice, presentationDryRun, presentationConceptMatch } from '../app/bundles/course/codelens/presentation.js';
 import { exercises } from '../app/bundles/course/codelens/model.js';
 
-test('presentation is explicit and repeatedly selects the same real maintainability task',()=>{
+test('presentation is explicit and repeatedly selects the same two-lens task',()=>{
   assert.equal(isPresentation(''),false);
   assert.equal(isPresentation('?demo'),false);
   assert.equal(isPresentation('?presentation=maintainability'),true);
   assert.equal(isPresentation('?presentation=true'),true);
   for(let i=0;i<10;i++){
-    const config=presentationPractice(['Maintainability'],false,exercises);
+    const config=presentationPractice(['Maintainability','Correctness'],false,exercises);
     assert.equal(config.exerciseId,'login-maintainability');
-    assert.deepEqual(config.focus,['Maintainability']);assert.equal(config.randomFocus,false);
+    assert.deepEqual(config.focus,['Correctness','Maintainability']);assert.equal(config.randomFocus,false);
     assert.ok(exercises.find(e=>e.id===config.exerciseId).findings.every(f=>config.focus.includes(f.dimension)));
   }
-  assert.throws(()=>presentationPractice(['Maintainability'],false,[]),/not approved/);
+  assert.throws(()=>presentationPractice(['Correctness','Maintainability'],false,[]),/not approved/);
+});
+
+test('presentation does not fix the two-lens task when only one of its lenses is selected',()=>{
+  for(const lens of ['Correctness','Maintainability']){
+    const config=presentationPractice([lens],false,exercises);
+    assert.deepEqual(config.focus,[lens]);
+    assert.ok(exercises.find(e=>e.id===config.exerciseId).findings.every(f=>f.dimension===lens));
+  }
 });
 
 test('presentation provides fixed exercises for dry run and concept match',()=>{

@@ -53,7 +53,6 @@ function notifications(): Note[] {
     return [{ id: stamp, title: 'Your TA commented', text: `on your Lens Review of ${titleOf(s.exercise)}`, unread: !readTa().seen.includes(stamp), to: 'ta-feedback', params: { attemptId: s.id, comment: true }, markRead: () => markSeen(stamp) }];
   });
 }
-
 // A submitted Lens Review, read-only: the code with what was found and missed, the TA's comment and the AI feedback.
 function ReviewResult({ params, go }: ScreenProps) {
   const submission = mine().find(s => s.id === params.attemptId);

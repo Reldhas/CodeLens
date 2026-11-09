@@ -31,7 +31,7 @@ export function buildQueue(submissions, reviews, exercises) {
     return { submission, exercise, flags, status: statusOf(mine), reviews: mine };
   });
   const rank = item => item.status === 'waiting' ? 0 : item.status === 'skipped' ? 1 : 2;
-  return items.sort((a, b) => rank(a) - rank(b) || b.submission.date.localeCompare(a.submission.date));
+  return items.sort((a, b) => rank(a) - rank(b) || b.flags.length - a.flags.length || b.submission.date.localeCompare(a.submission.date));
 }
 export function queueCounts(items) {
   const waiting = items.filter(item => item.status === 'waiting');

@@ -24,9 +24,9 @@ test('confidence is low for a comment that misses the point or a long off-key on
   assert.equal(confidenceOf(discount,[{...good,start:3,end:3,text:'The 100 boundary and negative totals'}]),'low');
   assert.equal(confidenceOf(seats,[{...good,start:1,end:1,text:'word '.repeat(30)}]),'low');
 });
-test('queue order: waiting, then newest submitted',()=>{
+test('queue order: waiting, more flags, then newest',()=>{
   const q=buildQueue([sub('old','2026-01-01'),sub('new','2026-02-01'),sub('flag','2026-01-02',{studentVote:'down'}),sub('done','2026-03-01')],[{attemptId:'done',sentAt:'x',createdAt:'x'}],exercises);
-  assert.deepEqual(q.map(i=>i.submission.id),['new','flag','old','done']);
+  assert.deepEqual(q.map(i=>i.submission.id),['flag','new','old','done']);
   assert.deepEqual(queueCounts(q),{waiting:3,flagged:1});
 });
 test('a student who disagreed with the AI is flagged',()=>assert.deepEqual(buildQueue([sub('a','2026-01-01',{studentVote:'down'})],[],exercises)[0].flags,['student-down']));

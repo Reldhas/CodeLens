@@ -24,29 +24,32 @@ Do not use fill-answer shortcuts or direct result links. Do not spend time finis
 
 ## Prepared annotation
 
-For the fixed three-line cinema variant:
+For the intermediate cinema maintainability variant (mutable default argument memoization):
 
 ```python
-def available_seats(a, b):
-    c = set(a)
-    return [d for d in b if d not in c]
+def available_seats(booked, requested, cache={}):
+    """Return available seats, caching lookup sets for speed."""
+    key = tuple(booked)
+    if key not in cache:
+        cache[key] = set(booked)
+    return [seat for seat in requested if seat not in cache[key]]
 ```
 
-Select lines 1-3 and the Maintainability lens.
+Select lines 1-5 (or line 1) and the Maintainability lens.
 
 **What's wrong, and why?**
 
-> Single-letter variable names hide which seats are booked and which are requested. This makes the data flow harder to follow and increases the risk of swapping the inputs when changing the code.
+> A mutable default argument (`cache={}`) creates hidden shared state across all function calls. In a web server, this causes an unbounded memory leak and breaks test isolation because cached lookups persist across independent requests.
 
 **Proposed fix** (intentionally imperfect):
 
-> Rename a to requested_seats, b to booked_seats, c to booked_set, and d to seat.
+> Call `cache.clear()` at the end of the function.
 
-The student identifies the issue but swaps the parameter meanings. Do not promise an exact score or that the AI will detect the swap. Discuss the actual response.
+The intentional mistake is clearing the cache inside the function: while it resets state, it completely defeats memoization, is not exception-safe, and does not fix the root architectural smell of using a mutable default parameter. Do not promise an exact score or that the AI will detect the flawed patch. Discuss the actual response.
 
 ## Prepared TA feedback
 
-> You identified the naming problem. Check the data flow before renaming: a is the booked seats because c = set(a), and b is the requested seats because the comprehension iterates over b. Use booked, requested, booked_set and seat, then verify that requested-seat order is preserved.
+> You correctly spotted the shared mutable state problem with `cache={}`. However, calling `cache.clear()` inside the function defeats memoization and will still leak if an exception occurs. To properly decouple state and cache lifecycle, use `cache=None` with an explicit fallback `if cache is None: cache = {}`, or wrap the lookup with `@functools.lru_cache(maxsize=128)` to enforce bounded eviction.
 
 The TA form now has Yes/No feedback quality, Your feedback, and an optional Your score. It no longer edits the AI summary. Queue review flags are heuristics, not model confidence.
 

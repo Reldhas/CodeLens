@@ -15,7 +15,6 @@ export default function ReviewSetup({ onStart, initialFocus = [], topic }: { onS
   // A suggested lens the topic has no exercise for keeps the lens and drops the topic.
   const inTopic = (topic ? lensesWithIssues(topic) : []) as string[];
   const chosenTopic = topic && inTopic.length && initialFocus.every(lens => inTopic.includes(lens)) ? topic : '';
-  const openLenses = lensesWithIssues(chosenTopic) as string[];
   function start(e: React.FormEvent) {
     e.preventDefault();
     if (!randomFocus && !focus.length) { setError('Choose at least one lens, or tick Random.'); return; }
@@ -25,10 +24,10 @@ export default function ReviewSetup({ onStart, initialFocus = [], topic }: { onS
     <form className="setup-form" onSubmit={start}>
       <div><h2 className="setup-title">Which lenses do you want to practise?</h2><p className="muted-text">{chosenTopic && `Topic: ${chosenTopic}. `}Choose one or more.</p></div>
       <fieldset className="option-list"><legend className="sr-only">Lenses</legend>
-        {dimensions.map(area => { const isOpen = openLenses.includes(area); return <label key={area} className="card hoverable vf option-card"><Brackets/>
-          <input type="checkbox" checked={isOpen && (randomFocus || focus.includes(area))} disabled={randomFocus || !isOpen} onChange={() => { setFocus(f => f.includes(area) ? f.filter(a => a !== area) : [...f, area]); setError(''); }}/>
-          <span className="option-text"><strong>{area}</strong><small>{isOpen ? hints[area] : 'Not available for this topic yet'}</small></span>
-        </label>; })}
+        {dimensions.map(area => <label key={area} className="card hoverable vf option-card"><Brackets/>
+          <input type="checkbox" checked={randomFocus || focus.includes(area)} disabled={randomFocus} onChange={() => { setFocus(f => f.includes(area) ? f.filter(a => a !== area) : [...f, area]); setError(''); }}/>
+          <span className="option-text"><strong>{area}</strong><small>{hints[area]}</small></span>
+        </label>)}
         <label className="random-check"><input type="checkbox" checked={randomFocus} onChange={e => { setRandomFocus(e.target.checked); setError(''); }}/><Shuffle size={15} strokeWidth={1.8} aria-hidden="true"/><span><strong>Random</strong> Any lens may apply. You see which ones after you submit.</span></label>
       </fieldset>
       {error && <p className="error-text" role="alert">{error}</p>}

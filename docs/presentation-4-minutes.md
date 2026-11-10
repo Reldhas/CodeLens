@@ -94,3 +94,5 @@ The configured default cutoff is 10 November 2026 at 9:15 pm Singapore time (13:
 Starting the fixed Maintainability exercise in presentation mode opens the annotation editor with lines 1-6, the explanation and the intentionally imperfect fix already filled. You can edit them, then click Save annotation and Submit review yourself. Resuming an existing draft keeps your saved edits. Other exercises and normal practice are unchanged.
 
 For the two-lens presentation (Correctness + Maintainability), both annotations are already saved as editable draft annotations. Review or edit them, then submit. The single-lens flow still opens the prefilled editor.
+
+The fixed two-lens Login attempt tracker is bundled and always available in presentation mode, even if old browser-saved TA approvals omit it. Normal practice still uses approved exercises.

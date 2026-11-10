@@ -14,7 +14,8 @@ test('presentation is explicit and repeatedly selects the same two-lens task',()
     assert.deepEqual(config.focus,['Correctness','Maintainability']);assert.equal(config.randomFocus,false);
     assert.ok(exercises.find(e=>e.id===config.exerciseId).findings.every(f=>config.focus.includes(f.dimension)));
   }
-  assert.throws(()=>presentationPractice(['Correctness','Maintainability'],false,[]),/not approved/);
+  assert.equal(presentationPractice(['Correctness','Maintainability'],false,[]).exerciseId,'login-maintainability');
+  assert.throws(()=>presentationPractice(['Efficiency'],false,[]),/No sample exercises/);
 });
 
 test('presentation does not fix the two-lens task when only one of its lenses is selected',()=>{

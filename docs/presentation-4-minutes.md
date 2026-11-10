@@ -4,16 +4,16 @@ Updated for the dev UX redesign (bf807c2). Start after a 30-second introduction;
 
 ## Preparation
 
-Open the presentation deployment with `?presentation=true`, without `?demo`. Navigate normally from Practice. The query fixes exercise selection only; it does not seed answers, scores, or TA decisions. The home card must use Any topic or Lists & membership, and the student must explicitly select only Maintainability. Other topics and lenses keep their normal selection behavior. Fixed exercises are also provided for Dry Run (`Cinema ticket price`) and Concept Match in case they are opened during the demo.
+Open the presentation deployment with `?presentation=true`, without `?demo`. Navigate normally from Practice. The query fixes exercise selection only; it does not seed answers, scores, or TA decisions. The home card must use Any topic or Lists & membership, and the student must explicitly select exactly two lenses, Correctness and Maintainability. Other topics and lenses keep their normal selection behavior. Fixed exercises are also provided for Dry Run (`Cinema ticket price`) and Concept Match in case they are opened during the demo.
 
-In Content Studio, ensure the Login attempt tracker Maintainability variant is approved before rehearsal. The fixed flow will report an error rather than bypass approval. Use the same browser and origin for student and TA, since this prototype saves feedback locally. Verify live AI sign-in/configuration before presenting. Rehearse on a separate attempt and keep its results accessible through normal history as a fallback.
+In Content Studio, ensure the Login attempt tracker (2 planted issues) variant is approved before rehearsal. The fixed flow will report an error rather than bypass approval. Use the same browser and origin for student and TA, since this prototype saves feedback locally. Verify live AI sign-in/configuration before presenting. Rehearse on a separate attempt and keep its results accessible through normal history as a fallback.
 
 ## Live journey
 
 | Time | Action | What to say |
 | --- | --- | --- |
 | 0:00-0:35 | Practice home: point to Dry Run and Concept Match and their Level/Topic selectors. Briefly open one practice, then exit back to Practice using its normal back control. | Dry Run builds tracing; Concept Match practises choosing an approach. Today we focus on evaluating code. |
-| 0:35-1:20 | Lens Review card: choose Lists & membership (or Any topic), Start Lens Review, select only Maintainability, Start Lens Review. Select lines 1-6, tag Maintainability, enter the explanation and fix below, Save annotation. Enable Use live AI feedback and submit. | Working code can still be difficult to maintain. The student must identify a problem, explain it and suggest a change. |
+| 0:35-1:20 | Lens Review card: choose Lists & membership (or Any topic), Start Lens Review, select Correctness and Maintainability, Start Lens Review. Select lines 1-6, tag Maintainability, enter the first explanation and fix below, Save annotation. Select line 7, tag Correctness, enter the second explanation and fix below, Save annotation. Enable Use live AI feedback and submit. | One review can apply several lenses. Correctness asks whether the code meets its requirements; Maintainability asks whether it will stay safe to change. The student must identify each problem, explain it and suggest a change. |
 | 1:20-1:55 | Result: point to the score, lenses practised, highlighted code and live feedback. Expand How this was scored briefly. | The assessment evaluates the review. Found/missed highlighting is checked against the curated answer key; the live model supplies the score and feedback. |
 | 1:55-2:45 | Back to Practice -> TA -> Review Queue. Select Review on the matching Demo student / Login attempt tracker submission, checking title and time. Read the saved live assessment. Review the automatically prefilled TA comment; optionally enter Your score. Approve and send. Use Back to Review Queue if it automatically opens the next submission. | The TA adds their own judgement alongside the AI assessment; they do not rewrite the AI response. |
 | 2:45-3:15 | Class Insights: show the lens breakdown, common gaps and students needing support. | These sample class insights help a TA prioritise support. |
@@ -33,8 +33,12 @@ def record_attempt(user_id, timestamp, attempts={}):
     user_history.append(timestamp)
     recent = [t for t in user_history if timestamp - t <= 60]
     attempts[user_id] = recent
-    return len(recent) > 3
+    return len(recent) >= 3
 ```
+
+This variant has two planted issues, one per selected lens, so it takes two annotations.
+
+### Annotation 1: Maintainability
 
 Select lines 1-6 (or line 1) and the Maintainability lens.
 
@@ -48,11 +52,24 @@ Select lines 1-6 (or line 1) and the Maintainability lens.
 
 The intentional mistake is clearing the dictionary inside the function: while it stops cross-request leakage, it wipes out previous timestamps on each call so sliding window rate limiting never accumulates past 1. It does not fix the root architectural smell of using a mutable default parameter. Do not promise an exact score or that the AI will detect the flawed patch. Discuss the actual response.
 
+### Annotation 2: Correctness
+
+Select line 7 and the Correctness lens.
+
+**What's wrong, and why?**
+
+> Using `>= 3` is off by one. The requirement only flags a user who exceeded 3 attempts, but a user with exactly 3 recent attempts is already flagged.
+
+**Proposed fix:**
+
+> Change the check to `len(recent) > 3`.
+
 ## Prepared TA feedback
 
 In presentation mode, the matching unsent Demo student review opens with editable feedback already filled in. The score remains blank and nothing is sent until Approve and send is clicked.
 
 > The key issue is hidden shared state in attempts={}. Clearing the dictionary on every call would erase the history needed for the sliding window check. Pass an explicitly managed history dictionary into the function, or encapsulate it in a RateLimiter with a defined lifecycle. If using attempts=None, initialise a new dictionary only when none was supplied; repeated calls must share the explicitly managed history. Verify that a fourth attempt within 60 seconds is flagged and that separate tracker instances remain isolated.
+
 
 The TA form now has Yes/No feedback quality, Your feedback, and an optional Your score. It no longer edits the AI summary. Queue review flags are heuristics, not model confidence.
 
@@ -75,3 +92,5 @@ The configured default cutoff is 10 November 2026 at 9:15 pm Singapore time (13:
 ## Student prefill
 
 Starting the fixed Maintainability exercise in presentation mode opens the annotation editor with lines 1-6, the explanation and the intentionally imperfect fix already filled. You can edit them, then click Save annotation and Submit review yourself. Resuming an existing draft keeps your saved edits. Other exercises and normal practice are unchanged.
+
+For the two-lens presentation (Correctness + Maintainability), both annotations are already saved as editable draft annotations. Review or edit them, then submit. The single-lens flow still opens the prefilled editor.

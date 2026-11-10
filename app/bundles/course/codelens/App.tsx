@@ -82,10 +82,11 @@ export default function App({ onHome, onHistoryBack, params = {} }: { onHome: ()
   function update(next: Draft) { setDrafts(d => ({ ...d, [reviewId]: next })); }
   function startReview(config: PracticeConfig) {
     const id = crypto.randomUUID();
-    setDrafts(d => ({ ...d, [id]: { ...config, comments: [], submitted: false, noIssues: false, justification: '' } }));
-    setReviewId(id); setShowSetup(false); setTab('annotations');
     const prepared = presentationStudentReview(config);
-    setRange(prepared?.range || []); setEditing(null); setForm(prepared?.form || freshForm(config.randomFocus ? dimensions : config.focus)); setError('');
+    const comments = (prepared?.annotations || []).map(comment => ({...comment, id: crypto.randomUUID()}));
+    setDrafts(d => ({ ...d, [id]: { ...config, comments, submitted: false, noIssues: false, justification: '' } }));
+    setReviewId(id); setShowSetup(false); setTab('annotations');
+    setRange(comments.length ? [] : prepared?.range || []); setEditing(null); setForm(prepared?.form || freshForm(config.randomFocus ? dimensions : config.focus)); setError('');
   }
   function resumeReview(id: string) {
     const saved = drafts[id];

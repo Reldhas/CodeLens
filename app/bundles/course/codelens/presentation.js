@@ -7,11 +7,12 @@ export const isPresentation = (search = globalThis.location?.search || '') => {
   const val = new URLSearchParams(search).get('presentation');
   return val === 'true' || val === 'maintainability';
 };
+const presentationFocus = ['Correctness', 'Maintainability'];
 export function presentationPractice(focus, randomFocus, bank = approvedItems('lens-review', exercises), topic = 'Random') {
-  if (randomFocus || focus.length !== 1 || focus[0] !== 'Maintainability' || (topic !== 'Random' && topic !== 'Lists & membership')) return choosePractice(topic, focus, randomFocus, Math.random, bank);
+  if (randomFocus || focus.length !== presentationFocus.length || !presentationFocus.every(lens => focus.includes(lens)) || (topic !== 'Random' && topic !== 'Lists & membership')) return choosePractice(topic, focus, randomFocus, Math.random, bank);
   const exercise = bank.find(item => item.id === 'login-maintainability' || item.id === 'seats-maintainability');
-  if (!exercise) throw new Error('The presentation exercise is not approved. Ask your TA to approve Login attempt tracker (Maintainability) before rehearsing.');
-  return { exerciseId: exercise.id, topic: exercise.topic, focus: ['Maintainability'], randomFocus: false };
+  if (!exercise) throw new Error('The presentation exercise is not approved. Ask your TA to approve Login attempt tracker (2 planted issues) before rehearsing.');
+  return { exerciseId: exercise.id, topic: exercise.topic, focus: [...presentationFocus], randomFocus: false };
 }
 
 export function presentationDryRun(items) {
@@ -37,10 +38,10 @@ export function presentationTaFeedback(item, search = globalThis.location?.searc
 
 // Prefill only a new presentation editor; the student still saves and submits.
 export function presentationStudentReview(config, search = globalThis.location?.search || '') {
-  if (!isPresentation(search) || config.randomFocus || config.focus?.length !== 1
-      || config.focus[0] !== 'Maintainability'
+  if (!isPresentation(search) || config.randomFocus || !config.focus?.includes('Maintainability')
+      || config.focus.some(lens => !['Maintainability', 'Correctness'].includes(lens))
       || !['login-maintainability', 'seats-maintainability'].includes(config.exerciseId)) return null;
-  return {
+  const prepared = {
     range: [1, 6],
     form: {
       lenses: ['Maintainability'],
@@ -48,4 +49,8 @@ export function presentationStudentReview(config, search = globalThis.location?.
       fix: 'Call attempts.clear() at the start of the function.',
     },
   };
+  return { ...prepared, annotations: config.focus.includes('Correctness') ? [
+    {start:1, end:6, ...prepared.form},
+    {start:7, end:7, lenses:['Correctness'], text:'Using >= 3 is off by one: exactly three recent attempts are flagged, but the requirement says exceeded three.', fix:'Change the check to len(recent) > 3.'},
+  ] : [] };
 }

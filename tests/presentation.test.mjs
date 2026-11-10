@@ -48,7 +48,7 @@ test('presentation respects a different topic selected on the home card',()=>{
 });
 
 test('TA prefill is scoped to an unsent presentation submission and does not mutate it', () => {
-  const item = { status: 'waiting', submission: { student: 'Demo student' }, exercise: { id: 'login-maintainability' } };
+  const item = { status: 'waiting', submission: { student: 'Hiroshi Sakuda' }, exercise: { id: 'login-maintainability' } };
   const before = JSON.stringify(item);
   assert.match(presentationTaFeedback(item, '?presentation=true'), /explicitly managed history/);
   assert.equal(presentationTaFeedback(item, ''), '');

@@ -9,7 +9,7 @@ import { sampleSubmissions } from '../review-queue/submissions.js';
 import { computeInsights } from './insights.js';
 import { sampleClass, sampleVotes } from './sample-class.js';
 import './class-insights.css';
-const you = 'Demo student';
+const you = 'Hiroshi Sakuda';
 function loadInsights() {
   const ta = readTa();
   const { attempts: lens, drafts } = lensReviewData();

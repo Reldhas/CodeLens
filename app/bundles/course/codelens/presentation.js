@@ -32,7 +32,7 @@ export function presentationConceptMatch(items, count = 3) {
 // Editable presenter draft only; never saves a review or sets a score.
 export function presentationTaFeedback(item, search = globalThis.location?.search || '') {
   if (!isPresentation(search) || !item || item.status !== 'waiting'
-      || item.submission.student !== 'Demo student'
+      || item.submission.student !== 'Hiroshi Sakuda'
       || !['login-maintainability', 'seats-maintainability'].includes(item.exercise?.id)) return '';
   return 'The key issue is hidden shared state in attempts={}. Clearing the dictionary on every call would erase the history needed for the sliding window check. Pass an explicitly managed history dictionary into the function, or encapsulate it in a RateLimiter with a defined lifecycle. If using attempts=None, initialise a new dictionary only when none was supplied; repeated calls must share the explicitly managed history. Verify that a fourth attempt within 60 seconds is flagged and that separate tracker instances remain isolated.';
 }

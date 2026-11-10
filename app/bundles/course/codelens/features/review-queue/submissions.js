@@ -1,6 +1,6 @@
 import { assess, exercises } from '../../model.js';
 import { lensReviewData, readTa } from '../../practice-log.js';
-export const demoStudent = 'Demo student';
+export const demoStudent = 'Hiroshi Sakuda';
 // Made-up students. Scores come from the same assess() as real submissions.
 const hoursAgo = hours => new Date(Date.now() - hours * 3600000).toISOString();
 const comment = (lens, start, end, claim, reasoning, fix) => ({ id: `${lens}-${start}-${claim.length}`, lenses: [lens], start, end, text: `${claim} ${reasoning}`, fix });

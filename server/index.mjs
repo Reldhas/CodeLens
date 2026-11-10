@@ -11,7 +11,7 @@ export function createApp({ env = process.env, fetchImpl = fetch, now = Date.now
   const origin = env.APP_ORIGIN || 'http://127.0.0.1:5173';
   const localSessionEnabled = !production && env.LOCAL_AUTO_LOGIN === 'true' && ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(origin).hostname);
   const canAutoLogin = req => localSessionEnabled && ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress) && !req.headers.forwarded && !req.headers['x-forwarded-for'];
-  if (production && (!origin.startsWith('https://') || !env.REVIEW_PASSWORD || env.REVIEW_PASSWORD.length < 16)) throw new Error('Production requires HTTPS APP_ORIGIN and REVIEW_PASSWORD of at least 16 characters.');
+  if (production && (!origin.startsWith('https://') || !env.REVIEW_PASSWORD)) throw new Error('Production requires HTTPS APP_ORIGIN and a non-empty REVIEW_PASSWORD.');
   const presentationUntil = Date.parse(env.PRESENTATION_AUTO_LOGIN_UNTIL ?? '2026-11-10T13:15:00Z');
   const presentationEnabled = () => env.PRESENTATION_AUTO_LOGIN === 'true' && Number.isFinite(presentationUntil) && now() < presentationUntil;
   const sessions = new Map(), loginAttempts = new Map();

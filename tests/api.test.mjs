@@ -102,3 +102,11 @@ test('temporary presentation access requires server opt-in and expires with its 
   const invalid = await fetch(`http://127.0.0.1:${disabled.address().port}/api/status`).then(r=>r.json());
   assert.equal(!!invalid.presentationAutoLogin, false);
 });
+
+test('production accepts a short password but still requires HTTPS and a password', () => {
+  const env = { NODE_ENV: 'production', APP_ORIGIN: 'https://codelens.example', REVIEW_PASSWORD: 'short' };
+  const app = createApp({env});
+  app.close();
+  assert.throws(() => createApp({env:{...env, REVIEW_PASSWORD:''}}), /non-empty/);
+  assert.throws(() => createApp({env:{...env, APP_ORIGIN:'http://codelens.example'}}), /HTTPS/);
+});

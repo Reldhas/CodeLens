@@ -71,3 +71,7 @@ On the presentation deployment backend, set `PRESENTATION_AUTO_LOGIN=true` and `
 With `?presentation=true` the password field is hidden and submission creates a temporary session automatically. Keep the API key and REVIEW_PASSWORD server-side. The URL alone cannot enable this access. Anyone able to reach this deployment can use the temporary presentation access while enabled, subject to the existing limits. Those limits are per server instance, not a durable account-wide budget. Existing password sign-in remains available outside presentation mode. Temporary sessions expire no later than the configured cutoff. Remove the two settings after the presentation.
 
 The configured default cutoff is 10 November 2026 at 9:15 pm Singapore time (13:15 UTC). Server opt-in via PRESENTATION_AUTO_LOGIN=true is still required.
+
+## Student prefill
+
+Starting the fixed Maintainability exercise in presentation mode opens the annotation editor with lines 1-6, the explanation and the intentionally imperfect fix already filled. You can edit them, then click Save annotation and Submit review yourself. Resuming an existing draft keeps your saved edits. Other exercises and normal practice are unchanged.

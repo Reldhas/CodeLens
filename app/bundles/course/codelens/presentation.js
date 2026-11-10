@@ -34,3 +34,18 @@ export function presentationTaFeedback(item, search = globalThis.location?.searc
       || !['login-maintainability', 'seats-maintainability'].includes(item.exercise?.id)) return '';
   return 'The key issue is hidden shared state in attempts={}. Clearing the dictionary on every call would erase the history needed for the sliding window check. Pass an explicitly managed history dictionary into the function, or encapsulate it in a RateLimiter with a defined lifecycle. If using attempts=None, initialise a new dictionary only when none was supplied; repeated calls must share the explicitly managed history. Verify that a fourth attempt within 60 seconds is flagged and that separate tracker instances remain isolated.';
 }
+
+// Prefill only a new presentation editor; the student still saves and submits.
+export function presentationStudentReview(config, search = globalThis.location?.search || '') {
+  if (!isPresentation(search) || config.randomFocus || config.focus?.length !== 1
+      || config.focus[0] !== 'Maintainability'
+      || !['login-maintainability', 'seats-maintainability'].includes(config.exerciseId)) return null;
+  return {
+    range: [1, 6],
+    form: {
+      lenses: ['Maintainability'],
+      text: 'The mutable default argument attempts={} creates hidden shared state across calls. This makes the tracker lifecycle unclear, breaks isolation between independent tests, and can retain histories for inactive users indefinitely.',
+      fix: 'Call attempts.clear() at the start of the function.',
+    },
+  };
+}

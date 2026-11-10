@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { isPresentation } from './presentation.js';
+import { isPresentation, presentationStudentReview } from './presentation.js';
 import { Trash2 } from 'lucide-react';
 import PythonConsole from './PythonConsole';
 import { SlimBar } from './bars';
@@ -84,7 +84,8 @@ export default function App({ onHome, onHistoryBack, params = {} }: { onHome: ()
     const id = crypto.randomUUID();
     setDrafts(d => ({ ...d, [id]: { ...config, comments: [], submitted: false, noIssues: false, justification: '' } }));
     setReviewId(id); setShowSetup(false); setTab('annotations');
-    setRange([]); setEditing(null); setForm(freshForm(config.randomFocus ? dimensions : config.focus)); setError('');
+    const prepared = presentationStudentReview(config);
+    setRange(prepared?.range || []); setEditing(null); setForm(prepared?.form || freshForm(config.randomFocus ? dimensions : config.focus)); setError('');
   }
   function resumeReview(id: string) {
     const saved = drafts[id];

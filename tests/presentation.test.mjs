@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isPresentation, presentationPractice, presentationDryRun, presentationConceptMatch, presentationTaFeedback } from '../app/bundles/course/codelens/presentation.js';
+import { isPresentation, presentationPractice, presentationDryRun, presentationConceptMatch, presentationTaFeedback, presentationStudentReview } from '../app/bundles/course/codelens/presentation.js';
 import { exercises } from '../app/bundles/course/codelens/model.js';
 
 test('presentation is explicit and repeatedly selects the same real maintainability task',()=>{
@@ -49,4 +49,17 @@ test('TA prefill is scoped to an unsent presentation submission and does not mut
   assert.equal(presentationTaFeedback({...item, submission: {student:'Other student'}}, '?presentation=true'), '');
   assert.equal(presentationTaFeedback(undefined, '?presentation=true'), '');
   assert.equal(JSON.stringify(item), before);
+});
+
+test('student prefill is restricted to the fixed presentation and returns independent editable drafts', () => {
+  const config = { exerciseId: 'login-maintainability', focus: ['Maintainability'], randomFocus: false };
+  assert.equal(presentationStudentReview(config, ''), null);
+  assert.equal(presentationStudentReview({...config, randomFocus:true}, '?presentation=true'), null);
+  assert.equal(presentationStudentReview({...config, exerciseId:'discount'}, '?presentation=true'), null);
+  assert.equal(presentationStudentReview({...config, focus:['Correctness']}, '?presentation=true'), null);
+  const first = presentationStudentReview(config, '?presentation=true');
+  assert.deepEqual(first.range, [1,6]);
+  assert.match(first.form.fix, /attempts.clear/);
+  first.form.text = 'Student edit';
+  assert.notEqual(presentationStudentReview(config, '?presentation=true').form.text, 'Student edit');
 });

@@ -96,3 +96,7 @@ Starting the fixed Maintainability exercise in presentation mode opens the annot
 For the two-lens presentation (Correctness + Maintainability), both annotations are already saved as editable draft annotations. Review or edit them, then submit. The single-lens flow still opens the prefilled editor.
 
 The fixed two-lens Login attempt tracker is bundled and always available in presentation mode, even if old browser-saved TA approvals omit it. Normal practice still uses approved exercises.
+
+## Refresh behavior
+
+Each full page load with `?presentation=true` (or the legacy `?presentation=maintainability`) clears saved CodeLens attempts, drafts, TA reviews, notifications/read state, course approvals and Content Studio edits. Built-in sample data remains. Navigation within the app preserves the current demonstration. Theme and authentication cookies are retained. Do not refresh halfway through the student-to-TA journey.

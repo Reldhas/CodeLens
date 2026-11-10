@@ -55,3 +55,12 @@ export function presentationStudentReview(config, search = globalThis.location?.
     {start:7, end:7, lenses:['Correctness'], text:'Using >= 3 is off by one: exactly three recent attempts are flagged, but the requirement says exceeded three.', fix:'Change the check to len(recent) > 3.'},
   ] : [] };
 }
+
+// Run once at application boot, not on component mounts or in-app navigation.
+export function resetPresentationState(search, local, session) {
+  if (!isPresentation(search)) return;
+  for (const key of ['codelens-demo-v1', 'codelens-practice-v1', 'codelens-ta-v1', 'codelens-course-v1', 'codelens-studio-v1']) {
+    local.removeItem(key);
+  }
+  session.removeItem('codelens-demo');
+}

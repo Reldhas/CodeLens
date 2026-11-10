@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isPresentation, presentationPractice, presentationDryRun, presentationConceptMatch, presentationTaFeedback, presentationStudentReview } from '../app/bundles/course/codelens/presentation.js';
+import { isPresentation, presentationPractice, presentationDryRun, presentationConceptMatch, presentationTaFeedback, presentationStudentReview, resetPresentationState } from '../app/bundles/course/codelens/presentation.js';
 import { exercises } from '../app/bundles/course/codelens/model.js';
 
 test('presentation is explicit and repeatedly selects the same two-lens task',()=>{
@@ -78,4 +78,19 @@ test('two-lens presentation prefills both issues as editable annotations', () =>
   assert.equal(prepared.annotations.length, 2);
   assert.deepEqual(prepared.annotations[1].lenses, ['Correctness']);
   assert.equal(prepared.annotations[1].start, 7);
+});
+
+test('presentation boot clears saved activity only, and normal mode preserves it', () => {
+  const keys = ['codelens-demo-v1','codelens-practice-v1','codelens-ta-v1','codelens-course-v1','codelens-studio-v1'];
+  const local = new Map([...keys.map(k=>[k,'saved']), ['codelens-theme','dark'], ['unrelated','keep']]);
+  const session = new Map([['codelens-demo','1'],['unrelated','keep']]);
+  const l = {removeItem:k=>local.delete(k)}, s = {removeItem:k=>session.delete(k)};
+  resetPresentationState('',l,s);
+  assert.ok(keys.every(k=>local.has(k)));
+  resetPresentationState('?presentation=true',l,s);
+  assert.ok(keys.every(k=>!local.has(k)));
+  assert.equal(local.get('codelens-theme'),'dark');
+  assert.equal(local.get('unrelated'),'keep');
+  assert.equal(session.has('codelens-demo'),false);
+  assert.equal(session.get('unrelated'),'keep');
 });

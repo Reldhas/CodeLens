@@ -12,6 +12,8 @@ export function createApp({ env = process.env, fetchImpl = fetch, now = Date.now
   const localSessionEnabled = !production && env.LOCAL_AUTO_LOGIN === 'true' && ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(origin).hostname);
   const canAutoLogin = req => localSessionEnabled && ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.socket.remoteAddress) && !req.headers.forwarded && !req.headers['x-forwarded-for'];
   if (production && (!origin.startsWith('https://') || !env.REVIEW_PASSWORD || env.REVIEW_PASSWORD.length < 16)) throw new Error('Production requires HTTPS APP_ORIGIN and REVIEW_PASSWORD of at least 16 characters.');
+  const presentationUntil = Date.parse(env.PRESENTATION_AUTO_LOGIN_UNTIL ?? '2026-11-10T13:15:00Z');
+  const presentationEnabled = () => env.PRESENTATION_AUTO_LOGIN === 'true' && Number.isFinite(presentationUntil) && now() < presentationUntil;
   const sessions = new Map(), loginAttempts = new Map();
   let active = 0, dailyCount = 0, day = '';
   const provider = providerConfig(env);
@@ -44,7 +46,7 @@ export function createApp({ env = process.env, fetchImpl = fetch, now = Date.now
       for (const [ip, a] of loginAttempts) if (a.until <= time) loginAttempts.delete(ip);
       const token = /(?:^|;\s*)codelens_session=([a-f0-9]{64})(?:;|$)/.exec(req.headers.cookie || '')?.[1];
       const session = sessions.get(token);
-      if (path === '/api/status' && req.method === 'GET') return json(res, 200, { configured, authenticated: !!session, provider: provider.label, localAutoLogin: !!canAutoLogin(req) });
+      if (path === '/api/status' && req.method === 'GET') return json(res, 200, { configured, authenticated: !!session, provider: provider.label, localAutoLogin: !!canAutoLogin(req), ...(presentationEnabled() ? { presentationAutoLogin: true } : {}) });
       if (path.startsWith('/api/')) {
         if (req.method !== 'POST') return json(res, 405, { error: 'Method not allowed.' }, { Allow: 'POST' });
         if (req.headers.origin !== origin) return json(res, 403, { error: 'Request origin is not allowed.' });
@@ -55,10 +57,11 @@ export function createApp({ env = process.env, fetchImpl = fetch, now = Date.now
           if (attempt.count >= 5 || loginAttempts.size >= 10000) return json(res, 429, { error: 'Too many sign-in attempts. Try again in 15 minutes.' });
           attempt.count++; loginAttempts.set(ip, attempt);
           const input = await body(req);
-          if (!canAutoLogin(req) && (typeof input?.password !== 'string' || !timingSafeEqual(hash(input.password), hash(env.REVIEW_PASSWORD)))) return json(res, 401, { error: 'Incorrect review password.' });
+          const presentationLogin = input?.presentation === true && presentationEnabled();
+          if (!presentationLogin && !canAutoLogin(req) && (typeof input?.password !== 'string' || !timingSafeEqual(hash(input.password), hash(env.REVIEW_PASSWORD)))) return json(res, 401, { error: 'Incorrect review password.' });
           if (sessions.size >= 1000) return json(res, 503, { error: 'Server is busy. Try again later.' });
           const id = randomBytes(32).toString('hex');
-          sessions.set(id, { expires: time + 3600000, count: 0, window: time });
+          sessions.set(id, { expires: presentationLogin ? Math.min(time + 3600000, presentationUntil) : time + 3600000, count: 0, window: time });
           return json(res, 200, { authenticated: true }, { 'Set-Cookie': `codelens_session=${id}; HttpOnly; SameSite=Strict; Path=/api; Max-Age=3600${secure}` });
         }
         if (!session) return json(res, 401, { error: 'Sign in to use live review.' });

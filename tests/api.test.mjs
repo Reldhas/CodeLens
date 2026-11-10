@@ -74,3 +74,31 @@ test('session expires and repeated password guessing is throttled', async t => {
   for (let i = 0; i < 5; i++) assert.equal((await login('bad')).status, 401);
   assert.equal((await login('long-test-password')).status, 429);
 });
+
+test('temporary presentation access requires server opt-in and expires with its sessions', async t => {
+  let time = Date.parse('2026-11-10T10:00:00Z');
+  const until = time + 60000;
+  const env = { NODE_ENV: 'production', APP_ORIGIN: 'https://codelens.example', OPENAI_API_KEY: 'secret', OPENAI_MODEL: 'test', REVIEW_PASSWORD: 'long-test-password', PRESENTATION_AUTO_LOGIN: 'true', PRESENTATION_AUTO_LOGIN_UNTIL: new Date(until).toISOString() };
+  const app = createApp({ env, now: () => time });
+  await new Promise(r => app.listen(0, '127.0.0.1', r));
+  t.after(() => new Promise(r => { app.close(r); app.closeAllConnections(); }));
+  const base = `http://127.0.0.1:${app.address().port}`;
+  const login = (data, origin = env.APP_ORIGIN) => fetch(base + '/api/session', { method: 'POST', headers: { Origin: origin, 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+  assert.equal((await login({})).status, 401);
+  assert.equal((await login({presentation: true}, 'https://evil.example')).status, 403);
+  const response = await login({presentation: true});
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('set-cookie'), /HttpOnly; SameSite=Strict/);
+  const cookie = response.headers.get('set-cookie').split(';')[0];
+  const status = () => fetch(base + '/api/status', {headers:{Cookie:cookie}}).then(r => r.json());
+  assert.equal((await status()).authenticated, true);
+  time = until;
+  assert.equal((await status()).authenticated, false);
+  assert.equal((await login({presentation: true})).status, 401);
+  env.PRESENTATION_AUTO_LOGIN_UNTIL = 'invalid';
+  const disabled = createApp({env, now: () => time});
+  await new Promise(r => disabled.listen(0, '127.0.0.1', r));
+  t.after(() => new Promise(r => { disabled.close(r); disabled.closeAllConnections(); }));
+  const invalid = await fetch(`http://127.0.0.1:${disabled.address().port}/api/status`).then(r=>r.json());
+  assert.equal(!!invalid.presentationAutoLogin, false);
+});

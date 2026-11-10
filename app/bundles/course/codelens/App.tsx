@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { isPresentation } from './presentation.js';
 import { Trash2 } from 'lucide-react';
 import PythonConsole from './PythonConsole';
 import { SlimBar } from './bars';
@@ -49,9 +50,11 @@ export default function App({ onHome, onHistoryBack, params = {} }: { onHome: ()
   const [configured, setConfigured] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
   const [localAutoLogin, setLocalAutoLogin] = useState(false);
+  const [presentationAutoLogin, setPresentationAutoLogin] = useState(false);
+  const autoLogin = localAutoLogin || (isPresentation() && presentationAutoLogin);
   const [provider, setProvider] = useState('the configured AI provider');
   const [password, setPassword] = useState('');
-  useEffect(() => { fetch('/api/status').then(r => r.ok ? r.json() : null).then(s => { setConfigured(!!s?.configured); setLocalAutoLogin(!!s?.localAutoLogin); if (s?.provider) setProvider(s.provider); setAuthenticated(!!s?.authenticated); }).catch(() => {}); }, []);
+  useEffect(() => { fetch('/api/status').then(r => r.ok ? r.json() : null).then(s => { setConfigured(!!s?.configured); setLocalAutoLogin(!!s?.localAutoLogin); setPresentationAutoLogin(!!s?.presentationAutoLogin); if (s?.provider) setProvider(s.provider); setAuthenticated(!!s?.authenticated); }).catch(() => {}); }, []);
   const viewingHistory = !!params.attemptId;
   const draft = drafts[reviewId] || { comments: [], submitted: false };
   const exerciseId = draft.exerciseId || reviewId;
@@ -122,7 +125,7 @@ export default function App({ onHome, onHistoryBack, params = {} }: { onHome: ()
     try {
       const post = (path: string, body: unknown, init: RequestInit = {}) => fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), ...init });
       if (live && !authenticated) {
-        const response = await post('/api/session', localAutoLogin ? {} : { password });
+        const response = await post('/api/session', autoLogin ? { presentation: isPresentation() } : { password });
         const value = await response.json();
         if (!response.ok) throw new Error(value.error || 'Sign in to use live review.');
         setAuthenticated(true); setPassword('');
@@ -220,7 +223,7 @@ export default function App({ onHome, onHistoryBack, params = {} }: { onHome: ()
     </WorkArea>
   </>;
 
-  const blocked = submissionError(draft, range.length > 0) || (live && !authenticated && !localAutoLogin && !password ? 'Enter the review access password to use live AI.' : '');
+  const blocked = submissionError(draft, range.length > 0) || (live && !authenticated && !autoLogin && !password ? 'Enter the review access password to use live AI.' : '');
   return <>
     <SlimBar title={exercise.title} meta={`Lens Review, ${exercise.topic.replace(' & ', ' and ').toLowerCase()}${storageError ? ', not saved' : ''}`} onExit={onHome} help={help}/>
     <WorkArea>
@@ -257,7 +260,7 @@ export default function App({ onHome, onHistoryBack, params = {} }: { onHome: ()
           {draft.noIssues && <label className="field">What did you check?<textarea aria-label="No issues justification" value={draft.justification || ''} placeholder="Explain how the code meets the requirements and what you checked." onChange={e => { update({ ...draft, justification: e.target.value }); setError(''); }}/></label>}
           {configured && <label className="lr-noissues"><input type="checkbox" checked={live} onChange={e => { setLive(e.target.checked); setError(''); }}/>Use live AI feedback</label>}
           {live && <span className="muted-text">Sends this review to {provider}.</span>}
-          {live && !authenticated && !localAutoLogin && <label className="field">Review access password<input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)}/></label>}
+          {live && !authenticated && !autoLogin && <label className="field">Review access password<input type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)}/></label>}
           {error && !range.length && <p className="error-text" role="alert">{error}</p>}
           <div className="row-between lr-submit"><span className="panel-footer-note">{draft.noIssues ? 'No issues found' : `${draft.comments.length} ${draft.comments.length === 1 ? 'annotation' : 'annotations'} saved`}</span>
             <button className="btn btn-primary" disabled={!!blocked} title={blocked || undefined} onClick={submit}>Submit review</button></div>

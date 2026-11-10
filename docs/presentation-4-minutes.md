@@ -63,3 +63,11 @@ Submit by 1:20 and enter TA review by 1:55. If live evaluation is slow, explicit
 If behind, skip opening How this was scored and shorten the other-practice preview. Keep TA review, the notification and Class Insights.
 
 Close: You've seen the student and TA journey. Here is the research and testing that shaped those decisions.
+
+## Password-free live presentation
+
+On the presentation deployment backend, set `PRESENTATION_AUTO_LOGIN=true` and `PRESENTATION_AUTO_LOGIN_UNTIL` to the ISO timestamp when access should end (include the timezone, for example `2026-11-10T21:15:00+08:00`). Redeploy after changing deployment variables. Use a future timestamp for your actual presentation.
+
+With `?presentation=true` the password field is hidden and submission creates a temporary session automatically. Keep the API key and REVIEW_PASSWORD server-side. The URL alone cannot enable this access. Anyone able to reach this deployment can use the temporary presentation access while enabled, subject to the existing limits. Those limits are per server instance, not a durable account-wide budget. Existing password sign-in remains available outside presentation mode. Temporary sessions expire no later than the configured cutoff. Remove the two settings after the presentation.
+
+The configured default cutoff is 10 November 2026 at 9:15 pm Singapore time (13:15 UTC). Server opt-in via PRESENTATION_AUTO_LOGIN=true is still required.

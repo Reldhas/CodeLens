@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isPresentation, presentationPractice, presentationDryRun, presentationConceptMatch } from '../app/bundles/course/codelens/presentation.js';
+import { isPresentation, presentationPractice, presentationDryRun, presentationConceptMatch, presentationTaFeedback } from '../app/bundles/course/codelens/presentation.js';
 import { exercises } from '../app/bundles/course/codelens/model.js';
 
 test('presentation is explicit and repeatedly selects the same real maintainability task',()=>{
@@ -36,4 +36,17 @@ test('presentation respects a different topic selected on the home card',()=>{
   const config=presentationPractice(['Maintainability'],false,exercises,'Conditions & boundaries');
   assert.equal(config.topic,'Conditions & boundaries');
   assert.notEqual(config.exerciseId,'login-maintainability');
+});
+
+test('TA prefill is scoped to an unsent presentation submission and does not mutate it', () => {
+  const item = { status: 'waiting', submission: { student: 'Demo student' }, exercise: { id: 'login-maintainability' } };
+  const before = JSON.stringify(item);
+  assert.match(presentationTaFeedback(item, '?presentation=true'), /explicitly managed history/);
+  assert.equal(presentationTaFeedback(item, ''), '');
+  assert.equal(presentationTaFeedback(item, '?demo'), '');
+  assert.equal(presentationTaFeedback({...item, status: 'sent'}, '?presentation=true'), '');
+  assert.equal(presentationTaFeedback({...item, exercise: {id:'discount'}}, '?presentation=true'), '');
+  assert.equal(presentationTaFeedback({...item, submission: {student:'Other student'}}, '?presentation=true'), '');
+  assert.equal(presentationTaFeedback(undefined, '?presentation=true'), '');
+  assert.equal(JSON.stringify(item), before);
 });

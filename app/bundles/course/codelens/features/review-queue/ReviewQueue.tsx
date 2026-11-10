@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { presentationTaFeedback } from '../../presentation.js';
 import { ArrowLeft, ThumbsDown, ThumbsUp } from 'lucide-react';
 import { highlight } from '../../CodeBlock';
 import type { ScreenProps } from '../../features';
@@ -61,7 +62,7 @@ export function TaReview({ params, go }: ScreenProps) {
   const queue = loadQueue();
   const item = queue.find(i => i.submission.id === params.id);
   const [ta, setTa] = useState(readTa);
-  const [comment, setComment] = useState('');
+  const [comment, setComment] = useState(() => presentationTaFeedback(item));
   const [score, setScore] = useState('');
   const [error, setError] = useState('');
   if (!item) return <section className="sheet center-sheet"><p>This submission is no longer in the queue.</p><button className="btn btn-outline" onClick={() => go('review-queue')}>Back to Review Queue</button></section>;

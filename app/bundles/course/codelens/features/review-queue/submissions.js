@@ -32,9 +32,15 @@ export const exampleTaFeedback = { 'sub-tom': "Good instinct to check the order.
 export function liveSubmissions() {
   const { attempts, drafts } = lensReviewData();
   return attempts.map(a => {
-    // Drafts record their attempt; older ones without it fall back to the same exercise.
-    const draft = Object.values(drafts).find(d => d.submitted && d.attemptId === a.id) || Object.values(drafts).find(d => d.submitted && !d.attemptId && d.exerciseId === a.exercise);
-    return { id: a.id, student: demoStudent, exercise: a.exercise, date: a.date, comments: a.comments, result: a.result, noIssues: !!a.noIssues, justification: a.justification || '', studentVote: draft?.ratings?.feedback?.vote || null };
+    // Match the exact attempt before recovering a live result from its draft.
+    const linked = drafts[a.reviewId];
+    const draft = (linked?.submitted && linked.attemptId === a.id ? linked : null)
+      || Object.values(drafts).find(d => d.submitted && d.attemptId === a.id)
+      || Object.values(drafts).find(d => d.submitted && !d.attemptId && d.exerciseId === a.exercise
+        && JSON.stringify(d.comments) === JSON.stringify(a.comments)
+        && !!d.noIssues === !!a.noIssues && (d.justification || '') === (a.justification || ''));
+    const result = a.result?.source === 'ai' ? a.result : draft?.liveResult || a.result;
+    return { id: a.id, student: demoStudent, exercise: a.exercise, date: a.date, comments: a.comments, result, noIssues: !!a.noIssues, justification: a.justification || '', studentVote: draft?.ratings?.feedback?.vote || null };
   });
 }
 export const allSubmissions = () => [...liveSubmissions(), ...sampleSubmissions];

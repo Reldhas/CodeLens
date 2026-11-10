@@ -137,7 +137,7 @@ export default function App({ onHome, onHistoryBack, params = {} }: { onHome: ()
         const response = await post('/api/review', requestPayload(), { signal: AbortSignal.timeout(50000) });
         const value = await response.json();
         if (!response.ok) { if (response.status === 401) setAuthenticated(false); throw new Error(value.error || 'Review failed.'); }
-        completed = value.result;
+        completed = { ...value.result, source: 'ai' };
       }
       const attemptId = crypto.randomUUID();
       update({ ...draft, submitted: true, attemptId, ...(live ? { liveResult: completed as LiveResult } : {}) });

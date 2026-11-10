@@ -125,3 +125,17 @@ test('a Practise topic with nothing available falls back to the other published 
   assert.deepEqual(eligibleForTopic(items,'easy',['lists-strings'],'loops').map(i=>i.id),['b']);
   assert.equal(eligibleForTopic(items,'easy',['loops','lists-strings']).length,2);
 });
+
+test('TA submissions recover the exact saved live score and review without mixing attempts', () => {
+  const previous = globalThis.localStorage;
+  const live = {source:'ai', total:8.5, summary:'Strong explanation; revise the fix.', improvements:['Keep explicit history.'], rubric:{issue:2.5,lines:2.5,explanation:2,fix:1.5}};
+  const attempts = [{id:'a', reviewId:'draft-a', exercise:'seats', comments:[], result:{total:0}}, {id:'b', exercise:'seats', comments:[], result:{total:3}}, {id:'c', exercise:'seats', comments:[], result:live}];
+  const drafts = {'draft-a':{submitted:true, attemptId:'a', exerciseId:'seats', comments:[], liveResult:live}};
+  globalThis.localStorage = {getItem: key => key === 'codelens-demo-v1' ? JSON.stringify({attempts,drafts}) : null};
+  try {
+    const rows = liveSubmissions();
+    assert.deepEqual(rows[0].result, live);
+    assert.equal(rows[1].result.total, 3);
+    assert.deepEqual(rows[2].result, live);
+  } finally { globalThis.localStorage = previous; }
+});
